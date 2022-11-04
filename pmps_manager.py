@@ -1,0 +1,267 @@
+import ftplib
+import json
+import typing
+from contextlib import contextmanager
+
+
+
+DEFAULT_PW = (
+    ('Administrator', '1'),
+)
+DIRECTORY = 'pmps'
+
+
+@contextmanager
+def ftp(hostname: str, directory: typing.Optional[str] = None) -> ftplib.FTP:
+    """
+    Context manager that manages an FTP connection.
+
+    The connection will be opened and closed cleanly.
+    This will be used as a helper in other functions.
+
+    Parameters
+    ----------
+    hostname : str
+        The plc hostname to connect to.
+    directory : str, optional
+        The ftp subdirectory to read to and write from.
+        A default directory pmps is used if this argument is omitted.
+
+    Yields
+    ------
+    ftp : ftplib.FTP
+        An active FTP instance that can be used to read and write files.
+    """
+    # Default directory
+    directory = directory or DIRECTORY
+    # Create without connecting
+    ftp_obj = ftplib.FTP(hostname)
+    # Beckhoff docs recommend active mode
+    ftp_obj.set_pasv(False)
+    # Best-effort login using default passwords
+    rval = None
+    for user, pwd in DEFAULT_PW:
+        try:
+            rval = ftp_obj.login(user=user, passwd=pwd)
+        except ftblib.error_perm:
+            pass
+    # Fallback to anonymous login
+    # Try last, might have reduced perms
+    if rval is None:
+        rval = ftp_obj.login()
+    if rval is None:
+        raise RuntimeError('Could not log into PLC using default passwords.')
+    # Create directory if it does not exist
+    if directory not in ftp_obj.nlst():
+        ftp_obj.mkd(directory)
+    # Put us into the proper directory
+    ftp_obj.cwd(directory)
+    # Should be ready to go
+    yield ftp_obj
+    # Cleanup
+    try:
+        # Polite cleanup
+        ftp_obj.quit()
+    except Exception:
+        # Rude cleanup
+        ftp_obj.close()
+
+
+def list_filenames(
+    hostname: str,
+    directory: typing.Optional[str] = None,
+) -> list[str]:
+    """
+    List the filenames that are currently open on the PLC.
+
+    Parameters
+    ----------
+    hostname : str
+        The plc hostname to upload to.
+    directory : str, optional
+        The ftp subdirectory to read and write from
+        A default directory pmps is used if this argument is omitted.
+
+    Returns
+    -------
+    filenames : list of str
+        The filenames on the PLC.
+    """
+    with ftp(hostname=hostname, directory=directory) as ftp_obj:
+        return ftp_obj.nlst()
+
+
+def upload_file(
+    hostname: str,
+    target_filename: str,
+    fd: typing.BinaryIO,
+    directory: typing.Optional[str] = None,
+):
+    """
+    Upload an open file to a PLC.
+
+    Parameters
+    ----------
+    hostname : str
+        The plc hostname to upload to.
+    target_filename : str
+        The filename to save the file as on the target.
+        This will overwrite an existing file with the same name.
+    fd : file-like object
+        A file-like object to upload.
+    directory : str, optional
+        The ftp subdirectory to read and write from
+        A default directory pmps is used if this argument is omitted.
+    """
+    with ftp(hostname=hostname, directory=directory) as ftp_obj:
+        ftp_obj.storbinary(f'STOR {target_filename}', fd)
+
+
+def upload_filename(
+    hostname: str,
+    filename: str,
+    directory: typing.Optional[str] = None,
+):
+    """
+    Open and upload a file on your filesystem to a PLC.
+
+    Parameters
+    ----------
+    hostname : str
+        The plc hostname to upload to.
+    filename : str
+        The name of the file on both your filesystem and on the PLC.
+    directory : str, optional
+        The ftp subdirectory to read and write from
+        A default directory pmps is used if this argument is omitted.
+    """
+    with open(filename, 'rb') as fd:
+        upload_file(
+            hostname=hostname,
+            target_filename=filename,
+            fd=fd,
+            directory=directory,
+        )
+
+
+def download_file_text(
+    hostname: str,
+    filename: str,
+    directory: typing.Optional[str] = None,
+) -> str:
+    """
+    Download a file from the PLC to use in Python.
+
+    The result is a single string, suitable for operations like
+    json.loads
+
+    Parameters
+    ----------
+    hostname : str
+        The plc hostname to download from.
+    filename : str
+        The name of the file on the PLC.
+    directory : str, optional
+        The ftp subdirectory to read and write from
+        A default directory pmps is used if this argument is omitted.
+
+    Returns
+    -------
+    text: str
+        The contents from the file.
+    """
+    byte_chunks = []
+    with ftp(hostname=hostname, directory=directory) as ftp_obj:
+        ftp_obj.retrbinary(f'RETR {filename}', byte_chunks.append)
+    contents = ''
+    for chunk in byte_chunks:
+        contents += chunk.decode('ascii')
+    return contents
+
+
+def download_file_json_dict(
+    hostname: str,
+    filename: str,
+    directory: typing.Optional[str] = None,
+) -> dict[str, dict[str, typing.Any]]:
+    """
+    Download a file from the PLC and interpret it as a json dictionary.
+
+    The result is suitable for comparing to json blobs exported from the
+    pmps database.
+
+    Parameters
+    ----------
+    hostname : str
+        The plc hostname to download from.
+    filename : str
+        The name of the file on the PLC.
+    directory : str, optional
+        The ftp subdirectory to read and write from
+        A default directory pmps is used if this argument is omitted.
+
+    Returns
+    -------
+    data : dict
+        The dictionary data from the file stored on the plc.
+    """
+    return json.loads(
+        download_file_text(
+            hostname=hostname,
+            filename=filename,
+            directory=directory,
+        )
+    )
+
+
+def local_file_json_dict(filename: str) -> dict[str, dict[str, typing.Any]]:
+    """
+    Return the json dict from a local file.
+
+    Suitable for comparisons to files from the database or from the plc.
+
+    Parameters
+    ----------
+    filename : str
+        The name of the file on the local filesystem.
+
+    Returns
+    -------
+    data : dict
+        The dictionary data from the file stored on the local drive.
+    """
+    with open(filename, 'r') as fd:
+        return json.load(fd)
+
+
+def compare_file(
+    hostname: str,
+    filename: str,
+    directory: typing.Optional[str] = None,
+) -> bool:
+    """
+    Compare a file saved locally to one on the PLC.
+
+    Parameters
+    ----------
+    hostname : str
+        The plc hostname to download from.
+    filename : str
+        The name of the file on the PLC and on the local drive.
+    directory : str, optional
+        The ftp subdirectory to read and write from
+        A default directory pmps is used if this argument is omitted.
+
+    Returns
+    -------
+    same_file : bool
+        True if the contents of these two files are the same.
+    """
+    local_data = local_file_json_dict(filename=filename)
+    plc_data = download_file_json_dict(
+        hostname=hostname,
+        filename=filename,
+        directory=directory,
+    )
+    return local_data == plc_data
+
