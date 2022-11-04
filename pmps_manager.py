@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+import datetime
 import ftplib
 import json
 import typing
 from contextlib import contextmanager
+from dataclasses import dataclass
 
 
 
@@ -72,7 +76,7 @@ def list_filenames(
     directory: typing.Optional[str] = None,
 ) -> list[str]:
     """
-    List the filenames that are currently open on the PLC.
+    List the filenames that are currently saved on the PLC.
 
     Parameters
     ----------
@@ -89,6 +93,78 @@ def list_filenames(
     """
     with ftp(hostname=hostname, directory=directory) as ftp_obj:
         return ftp_obj.nlst()
+
+
+@dataclass
+class PLCFile:
+    """
+    Information about a file on the PLC as learned through ftp.
+
+    In the context of pmps, the create_time is the last time we
+    updated the database export file.
+    """
+    filename: str
+    create_time: datetime.datetime
+    size: int
+
+    @classmethod
+    def from_list_line(cls, line: str) -> PLCFile:
+        """
+        Create a PLCFile from the output of the ftp LIST command.
+
+        The output of this command is a series of lines representing
+        information about the files in a directory.
+
+        Here is a sample line of output:
+        11-04-22  13:59                16439 kfe-motion.json
+
+        Parameters
+        ----------
+        line : str
+            A single line of text output from the ftp LIST command.
+        """
+        date, time, size, filename = line.split()
+        month, day, year = date.split('-')
+        hour, minute = time.split(':')
+        full_datetime = datetime.datetime(
+            year=int(year),
+            month=int(month),
+            day=int(day),
+            hour=int(hour),
+            minute=int(minute),
+        )
+        return cls(
+            filename=filename,
+            create_time=full_datetime,
+            size=int(size),
+        )
+
+
+def list_file_info(
+    hostname: str,
+    directory: typing.Optional[str] = None,
+) -> list[PLCFile]:
+    """
+    Gather pertinent information about all the files.
+
+    Parameters
+    ----------
+    hostname : str
+        The plc hostname to connect to.
+    directory : str, optional
+        The ftp subdirectory to read and write from
+        A default directory pmps is used if this argument is omitted.
+
+    Returns
+    -------
+    info : list of PLCFile
+        Information about our files, such as their creation times, sizes, and
+        filenames.
+    """
+    lines = []
+    with ftp(hostname=hostname, directory=directory) as ftp_obj:
+        ftp_obj.retrlines('LIST', lines.append)
+    return [PLCFile.from_list_line(line) for line in lines]
 
 
 def upload_file(
