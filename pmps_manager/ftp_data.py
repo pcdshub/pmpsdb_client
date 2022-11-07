@@ -8,7 +8,6 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 
 
-
 DEFAULT_PW = (
     ('Administrator', '1'),
 )
@@ -340,4 +339,3 @@ def compare_file(
         directory=directory,
     )
     return local_data == plc_data
-

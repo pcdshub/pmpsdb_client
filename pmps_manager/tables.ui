@@ -36,7 +36,14 @@
         </widget>
        </item>
        <item>
-        <widget class="QTableWidget" name="plc_table"/>
+        <widget class="QTableWidget" name="plc_table">
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -50,7 +57,11 @@
         </widget>
        </item>
        <item>
-        <widget class="QListWidget" name="device_list"/>
+        <widget class="QListWidget" name="device_list">
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QLabel" name="param_label">
@@ -60,7 +71,14 @@
         </widget>
        </item>
        <item>
-        <widget class="QTableWidget" name="param_table"/>
+        <widget class="QTableWidget" name="param_table">
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>

@@ -2,6 +2,7 @@ import argparse
 
 from .ftp_data import (list_file_info, upload_filename, download_file_text,
                        compare_file)
+from .gui import PMPSManagerGui
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -35,6 +36,11 @@ def create_parser() -> argparse.ArgumentParser:
         action='store',
         help='Filename on both PLC and local to compare.',
     )
+    parser.add_argument(
+        '-g', '--gui',
+        action='store_true',
+        help='Ignore other options and open the gui.'
+    )
     return parser
 
 
@@ -48,6 +54,8 @@ def main(args: argparse.Namespace):
 
 
 def _main(args: argparse.Namespace):
+    if args.gui:
+        return PMPSManagerGui(plc_hostnames=['plc-tst-motion'])
     hostname = args.hostname
     if args.download:
         print(download_file_text(hostname=hostname, filename=args.download))
@@ -69,4 +77,3 @@ def _main(args: argparse.Namespace):
             )
         if not infos:
             print('No files found')
-
