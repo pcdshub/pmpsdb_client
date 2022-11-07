@@ -11,6 +11,11 @@ def create_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument('hostname', help='The plc to connect to.')
     parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Show tracebacks',
+    )
+    parser.add_argument(
         '-l', '--list',
         action='store_true',
         help='List the plc pmps db files and their info.',
@@ -34,6 +39,15 @@ def create_parser() -> argparse.ArgumentParser:
 
 
 def main(args: argparse.Namespace):
+    try:
+        _main(args)
+    except Exception as exc:
+        if args.verbose:
+            raise
+        print(exc)
+
+
+def _main(args: argparse.Namespace):
     hostname = args.hostname
     if args.download:
         print(download_file_text(hostname=hostname, filename=args.download))

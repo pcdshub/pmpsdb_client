@@ -47,7 +47,7 @@ def ftp(hostname: str, directory: typing.Optional[str] = None) -> ftplib.FTP:
     for user, pwd in DEFAULT_PW:
         try:
             rval = ftp_obj.login(user=user, passwd=pwd)
-        except ftblib.error_perm:
+        except ftplib.error_perm:
             pass
     # Fallback to anonymous login
     # Try last, might have reduced perms
