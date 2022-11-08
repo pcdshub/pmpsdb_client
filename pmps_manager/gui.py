@@ -32,6 +32,7 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
     param_dict: dict[str, dict[str, Any]]
 
     def __init__(self, plc_hostnames: list[str]):
+        super().__init__()
         self.setup_table_columns()
         self.plc_row_map = {}
         for hostname in plc_hostnames:
@@ -44,9 +45,9 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         Set the column headers on the plc and parameter tables.
         """
         self.plc_table.setColumnCount(len(self.plc_columns))
-        self.plc_table.setVerticalHeaderLabels(self.plc_columns)
+        self.plc_table.setHorizontalHeaderLabels(self.plc_columns)
         self.param_table.setColumnCount(len(self.param_columns))
-        self.param_table.setVerticalHeaderLabels(self.param_columns)
+        self.param_table.setHorizontalHeaderLabels(self.param_columns)
 
     def add_plc(self, hostname: str):
         """
@@ -54,7 +55,7 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         """
         row = self.plc_table.rowCount()
         self.plc_table.insertRow(row)
-        name_item = QTableWidgetItem(text=hostname)
+        name_item = QTableWidgetItem(hostname)
         status_item = QTableWidgetItem()
         upload_time_item = QTableWidgetItem()
         self.plc_table.setItem(row, 0, name_item)
@@ -108,8 +109,8 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         for key, value in self.param_dict[device_name].items():
             row = self.param_table.rowCount()
             self.param_table.insertRow(row)
-            key_item = QTableWidgetItem(text=key)
-            value_item = QTableWidgetItem(text=value)
+            key_item = QTableWidgetItem(key)
+            value_item = QTableWidgetItem(value)
             self.param_table.setItem(row, 0, key_item)
             self.param_table.setItem(row, 1, value_item)
 
@@ -117,7 +118,7 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         """
         When a plc is selected, reset and seed the device list.
         """
-        self.update_plc_row()
+        self.update_plc_row(row)
         hostname = self.plc_table.item(row, 0).text()
         self.fill_device_list(hostname)
 
@@ -130,6 +131,10 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
 
 def check_server_online(hostname: str):
     try:
-        return not subprocess.call(['ping', '-c', '1', hostname])
+        subprocess.call(
+            ['ping', '-c', '1', hostname],
+            capture_output=True,
+        )
+        return True
     except Exception:
         return False

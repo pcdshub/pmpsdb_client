@@ -1,5 +1,7 @@
 import argparse
 
+from qtpy.QtWidgets import QApplication
+
 from .ftp_data import (list_file_info, upload_filename, download_file_text,
                        compare_file)
 from .gui import PMPSManagerGui
@@ -55,7 +57,10 @@ def main(args: argparse.Namespace):
 
 def _main(args: argparse.Namespace):
     if args.gui:
-        return PMPSManagerGui(plc_hostnames=['plc-tst-motion'])
+        app = QApplication([])
+        gui = PMPSManagerGui(plc_hostnames=['plc-tst-motion'])
+        gui.show()
+        return app.exec()
     hostname = args.hostname
     if args.download:
         print(download_file_text(hostname=hostname, filename=args.download))
