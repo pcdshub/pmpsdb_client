@@ -8,6 +8,9 @@ from .ftp_data import (list_file_info, upload_filename, download_file_text,
 from .gui import PMPSManagerGui
 
 
+logger = logging.getLogger(__name__)
+
+
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog='pmpsdb',

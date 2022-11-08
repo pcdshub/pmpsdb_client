@@ -89,8 +89,9 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
             info = []
             logger.debug('%s list_file_info failed', exc_info=True)
         text = 'no file found'
+        filename = hostname_to_filename(hostname)
         for file_info in info:
-            if file_info.filename == f'{hostname}.json':
+            if file_info.filename == filename:
                 text = file_info.create_time.ctime()
                 break
         self.plc_table.item(row, 2).setText(text)
@@ -102,16 +103,20 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         self.device_list.clear()
         self.param_table.clear()
         try:
-            json_info = download_file_json_dict(hostname, f'{hostname}.json')
+            json_info = download_file_json_dict(
+                hostname,
+                hostname_to_filename(hostname),
+            )
             logger.debug('%s found json info %s', hostname, json_info)
         except Exception:
             json_info = {}
             logger.debug('%s download_file_json_dict failed', exc_info=True)
+        key = hostname_to_key(hostname)
         try:
-            self.param_dict = json_info[hostname]
+            self.param_dict = json_info[key]
         except KeyError:
             self.param_dict = {}
-            logger.debug('%s not found in json info', hostname)
+            logger.debug('%s not found in json info', key)
         for device_name in self.param_dict:
             self.device_list.addItem(device_name)
 
@@ -173,3 +178,15 @@ def check_server_online(hostname: str):
     except Exception:
         logger.debug('%s ping failed', hostname, exc_info=True)
         return False
+
+
+def hostname_to_key(hostname: str):
+    if hostname.startswith('plc-'):
+        return hostname[4:]
+    else:
+        return hostname
+
+
+def hostname_to_filename(hostname: str):
+    return hostname_to_key(hostname) + '.json'
+
