@@ -1,0 +1,92 @@
+{"tst-motion":
+ {
+    "IM1K0-XTES": {"IM1K0-XTES-OUT": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-OUT", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "out", "special": false, "reactive_pressure": "",
+ "nBeamClassRange": "1111111111111111", "id": 1, "nTran": "1", "nRate":"120", "ap_ygap": "", "ap_xgap": "", "damage_limit": "out", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-YAG": {"neVRange": "11111111111111111111111111111111", 
+ "name": "IM1K0-XTES-YAG", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 2, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "",
+  "damage_limit": "20W", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-DIAMOND": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-DIAMOND", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, 
+  "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 3, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "", "damage_limit": "20W", "notes": "", "reactive_temp": ""},
+   "IM1K0-XTES-RETICLE": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-RETICLE", "ap_name": "SL1K0", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", 
+   "nBeamClassRange": "0000000000000000", "id": 4, "nTran": "0.1", "nRate":"120","ap_ygap": "3", "ap_xgap": "2.5", "damage_limit": "0W", "notes": "", "reactive_temp": ""}}
+ ,
+ 
+    "IM2K0-XTES": {"IM1K0-XTES-OUT": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-OUT", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "out", "special": false, "reactive_pressure": "",
+    "nBeamClassRange": "1111111111111111", "id": 1, "nTran": "1", "nRate":"120", "ap_ygap": "", "ap_xgap": "", "damage_limit": "out", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-YAG": {"neVRange": "11111111111111111111111111111111", 
+    "name": "IM1K0-XTES-YAG", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 2, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "",
+     "damage_limit": "20W", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-DIAMOND": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-DIAMOND", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, 
+     "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 3, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "", "damage_limit": "20W", "notes": "", "reactive_temp": ""},
+      "IM1K0-XTES-RETICLE": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-RETICLE", "ap_name": "SL1K0", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", 
+      "nBeamClassRange": "0000000000000000", "id": 4, "nTran": "0.1", "nRate":"120","ap_ygap": "3", "ap_xgap": "2.5", "damage_limit": "0W", "notes": "", "reactive_temp": ""}}
+,
+ 
+      "IM3K0-XTES": {"IM1K0-XTES-OUT": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-OUT", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "out", "special": false, "reactive_pressure": "",
+      "nBeamClassRange": "1111111111111111", "id": 1, "nTran": "1", "nRate":"120", "ap_ygap": "", "ap_xgap": "", "damage_limit": "out", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-YAG": {"neVRange": "11111111111111111111111111111111", 
+      "name": "IM1K0-XTES-YAG", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 2, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "",
+       "damage_limit": "20W", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-DIAMOND": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-DIAMOND", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, 
+       "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 3, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "", "damage_limit": "20W", "notes": "", "reactive_temp": ""},
+        "IM1K0-XTES-RETICLE": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-RETICLE", "ap_name": "SL1K0", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", 
+        "nBeamClassRange": "0000000000000000", "id": 4, "nTran": "0.1", "nRate":"120","ap_ygap": "3", "ap_xgap": "2.5", "damage_limit": "0W", "notes": "", "reactive_temp": ""}}
+,
+ 
+        "IM4K0-XTES": {"IM1K0-XTES-OUT": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-OUT", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "out", "special": false, "reactive_pressure": "",
+        "nBeamClassRange": "1111111111111111", "id": 1, "nTran": "1", "nRate":"120", "ap_ygap": "", "ap_xgap": "", "damage_limit": "out", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-YAG": {"neVRange": "11111111111111111111111111111111", 
+        "name": "IM1K0-XTES-YAG", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 2, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "",
+         "damage_limit": "20W", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-DIAMOND": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-DIAMOND", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, 
+         "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 3, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "", "damage_limit": "20W", "notes": "", "reactive_temp": ""},
+          "IM1K0-XTES-RETICLE": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-RETICLE", "ap_name": "SL1K0", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", 
+          "nBeamClassRange": "0000000000000000", "id": 4, "nTran": "0.1", "nRate":"120","ap_ygap": "3", "ap_xgap": "2.5", "damage_limit": "0W", "notes": "", "reactive_temp": ""}}
+,
+     
+          "IM5K0-XTES": {"IM1K0-XTES-OUT": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-OUT", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "out", "special": false, "reactive_pressure": "",
+          "nBeamClassRange": "1111111111111111", "id": 1, "nTran": "1", "nRate":"120", "ap_ygap": "", "ap_xgap": "", "damage_limit": "out", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-YAG": {"neVRange": "11111111111111111111111111111111", 
+          "name": "IM1K0-XTES-YAG", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 2, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "",
+           "damage_limit": "20W", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-DIAMOND": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-DIAMOND", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, 
+           "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 3, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "", "damage_limit": "20W", "notes": "", "reactive_temp": ""},
+            "IM1K0-XTES-RETICLE": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-RETICLE", "ap_name": "SL1K0", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", 
+            "nBeamClassRange": "0000000000000000", "id": 4, "nTran": "0.1", "nRate":"120","ap_ygap": "3", "ap_xgap": "2.5", "damage_limit": "0W", "notes": "", "reactive_temp": ""}}
+            ,
+ 
+            "IM6K0-XTES": {"IM1K0-XTES-OUT": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-OUT", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "out", "special": false, "reactive_pressure": "",
+            "nBeamClassRange": "1111111111111111", "id": 1, "nTran": "1", "nRate":"120", "ap_ygap": "", "ap_xgap": "", "damage_limit": "out", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-YAG": {"neVRange": "11111111111111111111111111111111", 
+            "name": "IM1K0-XTES-YAG", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 2, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "",
+             "damage_limit": "20W", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-DIAMOND": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-DIAMOND", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, 
+             "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 3, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "", "damage_limit": "20W", "notes": "", "reactive_temp": ""},
+              "IM1K0-XTES-RETICLE": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-RETICLE", "ap_name": "SL1K0", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", 
+              "nBeamClassRange": "0000000000000000", "id": 4, "nTran": "0.1", "nRate":"120","ap_ygap": "3", "ap_xgap": "2.5", "damage_limit": "0W", "notes": "", "reactive_temp": ""}}
+        ,
+         
+              "IM7K0-XTES": {"IM1K0-XTES-OUT": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-OUT", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "out", "special": false, "reactive_pressure": "",
+              "nBeamClassRange": "1111111111111111", "id": 1, "nTran": "1", "nRate":"120", "ap_ygap": "", "ap_xgap": "", "damage_limit": "out", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-YAG": {"neVRange": "11111111111111111111111111111111", 
+              "name": "IM1K0-XTES-YAG", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 2, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "",
+               "damage_limit": "20W", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-DIAMOND": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-DIAMOND", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, 
+               "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 3, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "", "damage_limit": "20W", "notes": "", "reactive_temp": ""},
+                "IM1K0-XTES-RETICLE": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-RETICLE", "ap_name": "SL1K0", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", 
+                "nBeamClassRange": "0000000000000000", "id": 4, "nTran": "0.1", "nRate":"120","ap_ygap": "3", "ap_xgap": "2.5", "damage_limit": "0W", "notes": "", "reactive_temp": ""}}
+        ,
+         
+                "IM8K0-XTES": {"IM1K0-XTES-OUT": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-OUT", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "out", "special": false, "reactive_pressure": "",
+                "nBeamClassRange": "1111111111111111", "id": 1, "nTran": "1", "nRate":"120", "ap_ygap": "", "ap_xgap": "", "damage_limit": "out", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-YAG": {"neVRange": "11111111111111111111111111111111", 
+                "name": "IM1K0-XTES-YAG", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 2, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "",
+                 "damage_limit": "20W", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-DIAMOND": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-DIAMOND", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, 
+                 "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 3, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "", "damage_limit": "20W", "notes": "", "reactive_temp": ""},
+                  "IM1K0-XTES-RETICLE": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-RETICLE", "ap_name": "SL1K0", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", 
+                  "nBeamClassRange": "0000000000000000", "id": 4, "nTran": "0.1", "nRate":"120","ap_ygap": "3", "ap_xgap": "2.5", "damage_limit": "0W", "notes": "", "reactive_temp": ""}}
+        ,
+             
+                  "IM9K0-XTES": {"IM1K0-XTES-OUT": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-OUT", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "out", "special": false, "reactive_pressure": "",
+                  "nBeamClassRange": "1111111111111111", "id": 1, "nTran": "1", "nRate":"120", "ap_ygap": "", "ap_xgap": "", "damage_limit": "out", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-YAG": {"neVRange": "11111111111111111111111111111111", 
+                  "name": "IM1K0-XTES-YAG", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 2, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "",
+                   "damage_limit": "20W", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-DIAMOND": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-DIAMOND", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, 
+                   "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 3, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "", "damage_limit": "20W", "notes": "", "reactive_temp": ""},
+                    "IM1K0-XTES-RETICLE": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-RETICLE", "ap_name": "SL1K0", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", 
+                    "nBeamClassRange": "0000000000000000", "id": 4, "nTran": "0.1", "nRate":"120","ap_ygap": "3", "ap_xgap": "2.5", "damage_limit": "0W", "notes": "", "reactive_temp": ""}}
+                    ,
+             
+                    "IM10K0-XTES": {"IM1K0-XTES-OUT": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-OUT", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "out", "special": false, "reactive_pressure": "",
+                    "nBeamClassRange": "1111111111111111", "id": 1, "nTran": "1", "nRate":"120", "ap_ygap": "", "ap_xgap": "", "damage_limit": "out", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-YAG": {"neVRange": "11111111111111111111111111111111", 
+                    "name": "IM1K0-XTES-YAG", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 2, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "",
+                     "damage_limit": "20W", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-DIAMOND": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-DIAMOND", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, 
+                     "reactive_pressure": "", "nBeamClassRange": "0000000111111111", "id": 3, "nTran": "0.1", "nRate":"120","ap_ygap": "", "ap_xgap": "", "damage_limit": "20W", "notes": "", "reactive_temp": ""},
+                      "IM1K0-XTES-RETICLE": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-RETICLE", "ap_name": "SL1K0", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "", "special": false, "reactive_pressure": "", 
+                      "nBeamClassRange": "0000000000000000", "id": 4, "nTran": "0.1", "nRate":"120","ap_ygap": "3", "ap_xgap": "2.5", "damage_limit": "0W", "notes": "", "reactive_temp": ""}}
+ }
+}
