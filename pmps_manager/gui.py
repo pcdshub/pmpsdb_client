@@ -37,8 +37,12 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         for hostname in plc_hostnames:
             logger.debug('Adding %s', hostname)
             self.add_plc(hostname)
-        self.device_list.itemActivated.connect(self.device_selected)
+        self.plc_table.resizeColumnsToContents()
+        self.plc_table.setFixedWidth(
+            self.plc_table.horizontalHeader().length()
+        )
         self.plc_table.cellActivated.connect(self.plc_selected)
+        self.device_list.itemActivated.connect(self.device_selected)
 
     def setup_table_columns(self):
         """
@@ -135,6 +139,7 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
                 col = header.index(key)
                 item = QTableWidgetItem(value)
                 self.param_table.setItem(row, col, item)
+        self.param_table.resizeColumnsToContents()
 
     def plc_selected(self, row: int, col: int):
         """
