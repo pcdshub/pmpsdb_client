@@ -60,7 +60,7 @@ def _main(args: argparse.Namespace):
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:
-        logging.basicConfig(level=logginf.INFO)
+        logging.basicConfig(level=logging.INFO)
     if args.gui:
         app = QApplication([])
         gui = PMPSManagerGui(plc_hostnames=['plc-tst-motion'])

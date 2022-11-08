@@ -1,4 +1,4 @@
-{"tst-motion":
+{"plc-tst-motion":
  {
     "IM1K0-XTES": {"IM1K0-XTES-OUT": {"neVRange": "11111111111111111111111111111111", "name": "IM1K0-XTES-OUT", "ap_name": "", "ap_ycenter": "", "ap_xcenter": "", "pulse_energy": "out", "special": false, "reactive_pressure": "",
  "nBeamClassRange": "1111111111111111", "id": 1, "nTran": "1", "nRate":"120", "ap_ygap": "", "ap_xgap": "", "damage_limit": "out", "notes": "", "reactive_temp": ""}, "IM1K0-XTES-YAG": {"neVRange": "11111111111111111111111111111111", 

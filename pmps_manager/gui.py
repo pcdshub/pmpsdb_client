@@ -150,7 +150,7 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
 
 def check_server_online(hostname: str):
     try:
-        subprocess.call(
+        subprocess.run(
             ['ping', '-c', '1', hostname],
             capture_output=True,
         )
