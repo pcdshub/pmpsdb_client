@@ -29,16 +29,11 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         'status',
         'file last uploaded',
     ]
-    param_columns: ClassVar[list[str]] = [
-        'parameter',
-        'value',
-    ]
     param_dict: dict[str, dict[str, Any]]
 
     def __init__(self, plc_hostnames: list[str]):
         super().__init__()
         self.setup_table_columns()
-        self.plc_row_map = {}
         for hostname in plc_hostnames:
             logger.debug('Adding %s', hostname)
             self.add_plc(hostname)
@@ -51,8 +46,6 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         """
         self.plc_table.setColumnCount(len(self.plc_columns))
         self.plc_table.setHorizontalHeaderLabels(self.plc_columns)
-        self.param_table.setColumnCount(len(self.param_columns))
-        self.param_table.setHorizontalHeaderLabels(self.param_columns)
 
     def add_plc(self, hostname: str):
         """
@@ -116,22 +109,32 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         Use the cached db to show a single device's parameters in the table.
         """
         self.param_table.clear()
+        self.param_table.setRowCount(0)
         try:
             device_params = self.param_dict[device_name]
         except KeyError:
-            device_params = {}
             logger.debug(
                 '%s not found in json info',
                 device_name,
                 exc_info=True,
             )
-        for key, value in device_params.items():
+            return
+
+        # Lock in the header
+        first_values = list(device_params.values())[0]
+        header = sorted(list(first_values))
+        header.remove('name')
+        header.insert(0, 'name')
+        self.param_table.setColumnCount(len(header))
+        self.param_table.setHorizontalHeaderLabels(header)
+
+        for state_info in device_params.values():
             row = self.param_table.rowCount()
             self.param_table.insertRow(row)
-            key_item = QTableWidgetItem(key)
-            value_item = QTableWidgetItem(value)
-            self.param_table.setItem(row, 0, key_item)
-            self.param_table.setItem(row, 1, value_item)
+            for key, value in state_info.items():
+                col = header.index(key)
+                item = QTableWidgetItem(value)
+                self.param_table.setItem(row, col, item)
 
     def plc_selected(self, row: int, col: int):
         """
