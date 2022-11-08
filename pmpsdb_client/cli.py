@@ -10,39 +10,51 @@ from .gui import PMPSManagerGui
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog='pmps_manager',
-        description='Manage pmps database deployment.',
+        prog='pmpsdb',
+        description='PMPS database deployment helpers',
     )
-    parser.add_argument('hostname', help='The plc to connect to.')
     parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='Show tracebacks and debug statements',
     )
-    parser.add_argument(
+    subparsers = parser.add_subparsers(dest='subparser')
+    gui = subparsers.add_parser(
+        'gui',
+        help='Open the pmpsdb gui.',
+    )
+    gui.add_argument(
+        'hostnames',
+        nargs='*',
+        help=(
+            'List the PLCs to include in the gui. '
+            'If omitted, defaults to all production PLCs.'
+        ),
+    )
+    plc = subparsers.add_parser(
+        'plc',
+        help='Read db from or write db to the plc harddrives.',
+    )
+    plc.add_argument('hostname', help='The plc to connect to.')
+    plc.add_argument(
         '-l', '--list',
         action='store_true',
         help='List the plc pmps db files and their info.',
     )
-    parser.add_argument(
+    plc.add_argument(
         '-d', '--download',
         action='store',
         help='PLC filename to download to stdout.',
     )
-    parser.add_argument(
+    plc.add_argument(
         '-u', '--upload',
         action='store',
         help='Local filename to upload to the PLC.',
     )
-    parser.add_argument(
+    plc.add_argument(
         '-c', '--compare',
         action='store',
         help='Filename on both PLC and local to compare.',
-    )
-    parser.add_argument(
-        '-g', '--gui',
-        action='store_true',
-        help='Ignore other options and open the gui.'
     )
     return parser
 
@@ -61,23 +73,32 @@ def _main(args: argparse.Namespace):
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
-    if args.gui:
-        app = QApplication([])
-        gui = PMPSManagerGui(plc_hostnames=['plc-tst-motion'])
-        gui.show()
-        return app.exec()
+    if args.subparser == 'gui':
+        return gui(args)
+    if args.subparser == 'plc':
+        return plc(args)
+
+
+def gui(args: argparse.Namespace):
+    app = QApplication([])
+    gui = PMPSManagerGui(plc_hostnames=args.hostnames)
+    gui.show()
+    return app.exec()
+
+
+def plc(args: argparse.Namespace):
     hostname = args.hostname
     if args.download:
         print(download_file_text(hostname=hostname, filename=args.download))
     if args.upload:
-        print(f'Uploading {args.upload}')
+        logger.info(f'Uploading {args.upload}')
         upload_filename(hostname=hostname, filename=args.upload)
     if args.compare:
         ok = compare_file(hostname=hostname, filename=args.compare)
         if ok:
-            print(f'{args.compare} is the same locally and on the PLC')
+            logger.info(f'{args.compare} is the same locally and on the PLC')
         else:
-            print(f'{args.compare} is different on the PLC!')
+            logger.info(f'{args.compare} is different on the PLC!')
     if args.list:
         infos = list_file_info(hostname=hostname)
         for data in infos:
@@ -86,4 +107,5 @@ def _main(args: argparse.Namespace):
                 f'({data.size} bytes)'
             )
         if not infos:
-            print('No files found')
+            logger.warning('No files found')
+

@@ -10,6 +10,11 @@ from pcdsutils.qt import DesignerDisplay
 from .ftp_data import download_file_json_dict, list_file_info
 
 
+DEFAULT_HOSTNAMES = [
+    'plc-tst-motion',
+    'plc-tst-pmps-subsystem-a',
+    'plc-tst-pmps-subsystem-b',
+]
 logger = logging.getLogger(__name__)
 
 
@@ -33,6 +38,8 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
 
     def __init__(self, plc_hostnames: list[str]):
         super().__init__()
+        if not plc_hostnames:
+            plc_hostnames = DEFAULT_HOSTNAMES
         self.setup_table_columns()
         for hostname in plc_hostnames:
             logger.debug('Adding %s', hostname)
