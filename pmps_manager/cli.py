@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 from qtpy.QtWidgets import QApplication
 
@@ -16,7 +17,7 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         '-v', '--verbose',
         action='store_true',
-        help='Show tracebacks',
+        help='Show tracebacks and debug statements',
     )
     parser.add_argument(
         '-l', '--list',
@@ -56,6 +57,10 @@ def main(args: argparse.Namespace):
 
 
 def _main(args: argparse.Namespace):
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logginf.INFO)
     if args.gui:
         app = QApplication([])
         gui = PMPSManagerGui(plc_hostnames=['plc-tst-motion'])

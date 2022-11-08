@@ -1,3 +1,4 @@
+import logging
 import subprocess
 from pathlib import Path
 from typing import Any, ClassVar
@@ -7,6 +8,9 @@ from qtpy.QtWidgets import (QLabel, QListWidget, QListWidgetItem,
 from pcdsutils.qt import DesignerDisplay
 
 from .ftp_data import download_file_json_dict, list_file_info
+
+
+logger = logging.getLogger(__name__)
 
 
 class PMPSManagerGui(DesignerDisplay, QWidget):
@@ -36,6 +40,7 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         self.setup_table_columns()
         self.plc_row_map = {}
         for hostname in plc_hostnames:
+            logger.debug('Adding %s', hostname)
             self.add_plc(hostname)
         self.device_list.itemActivated.connect(self.device_selected)
         self.plc_table.cellActivated.connect(self.plc_selected)
@@ -75,8 +80,10 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         self.plc_table.item(row, 1).setText(text)
         try:
             info = list_file_info(hostname)
+            logger.debug('%s found file info %s', hostname, info)
         except Exception:
             info = []
+            logger.debug('%s list_file_info failed', exc_info=True)
         text = 'no file found'
         for file_info in info:
             if file_info.filename == f'{hostname}.json':
@@ -92,12 +99,15 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         self.param_table.clear()
         try:
             json_info = download_file_json_dict(hostname, f'{hostname}.json')
+            logger.debug('%s found json info %s', hostname, json_info)
         except Exception:
             json_info = {}
+            logger.debug('%s download_file_json_dict failed', exc_info=True)
         try:
             self.param_dict = json_info[hostname]
         except KeyError:
             self.param_dict = {}
+            logger.debug('%s not found in json info', hostname)
         for device_name in self.param_dict:
             self.device_list.addItem(device_name)
 
@@ -106,7 +116,16 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         Use the cached db to show a single device's parameters in the table.
         """
         self.param_table.clear()
-        for key, value in self.param_dict[device_name].items():
+        try:
+            device_params = self.param_dict[device_name]
+        except KeyError:
+            device_params = {}
+            logger.debug(
+                '%s not found in json info',
+                device_name,
+                exc_info=True,
+            )
+        for key, value in device_params.items():
             row = self.param_table.rowCount()
             self.param_table.insertRow(row)
             key_item = QTableWidgetItem(key)
@@ -137,4 +156,5 @@ def check_server_online(hostname: str):
         )
         return True
     except Exception:
+        logger.debug('%s ping failed', hostname, exc_info=True)
         return False
