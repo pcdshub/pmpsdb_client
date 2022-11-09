@@ -3,10 +3,10 @@ from __future__ import annotations
 import datetime
 import ftplib
 import json
+import os
 import typing
 from contextlib import contextmanager
 from dataclasses import dataclass
-
 
 DEFAULT_PW = (
     ('Administrator', '1'),
@@ -213,7 +213,7 @@ def upload_filename(
     with open(filename, 'rb') as fd:
         upload_file(
             hostname=hostname,
-            target_filename=filename,
+            target_filename=os.path.basename(filename),
             fd=fd,
             directory=directory,
         )

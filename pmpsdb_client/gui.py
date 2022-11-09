@@ -1,14 +1,16 @@
 import logging
+import os
+import os.path
 import subprocess
 from pathlib import Path
 from typing import Any, ClassVar
 
-from qtpy.QtWidgets import (QLabel, QListWidget, QListWidgetItem,
-                            QTableWidget, QTableWidgetItem, QWidget)
 from pcdsutils.qt import DesignerDisplay
+from qtpy.QtWidgets import (QAction, QFileDialog, QLabel, QListWidget,
+                            QListWidgetItem, QMainWindow, QTableWidget,
+                            QTableWidgetItem, QWidget)
 
-from .ftp_data import download_file_json_dict, list_file_info
-
+from .ftp_data import download_file_json_dict, list_file_info, upload_filename
 
 DEFAULT_HOSTNAMES = [
     'plc-tst-motion',
@@ -18,7 +20,66 @@ DEFAULT_HOSTNAMES = [
 logger = logging.getLogger(__name__)
 
 
-class PMPSManagerGui(DesignerDisplay, QWidget):
+class PMPSManagerGui(QMainWindow):
+    def __init__(self, plc_hostnames: list[str]):
+        super().__init__()
+        if not plc_hostnames:
+            plc_hostnames = DEFAULT_HOSTNAMES
+        self.plc_hostnames = plc_hostnames
+        self.tables = SummaryTables(plc_hostnames=plc_hostnames)
+        self.setCentralWidget(self.tables)
+        self.setup_menu_options()
+
+    def setup_menu_options(self):
+        menu = self.menuBar()
+        file_menu = menu.addMenu('&File')
+        upload_menu = file_menu.addMenu('&Upload to')
+        download_menu = file_menu.addMenu('&Download from')
+        # Actions will be garbage collected if we drop this reference
+        self.actions = []
+        for plc in self.plc_hostnames:
+            upload_action = QAction()
+            upload_action.setText(plc)
+            upload_menu.addAction(upload_action)
+            download_action = QAction(plc)
+            download_action.setText(plc)
+            download_menu.addAction(download_action)
+            self.actions.append(upload_action)
+            self.actions.append(download_action)
+        upload_menu.triggered.connect(self.upload_to)
+        download_menu.triggered.connect(self.download_from)
+        self.setMenuWidget(menu)
+
+    def upload_to(self, action: QAction):
+        hostname = action.text()
+        logger.debug('%s upload action', hostname)
+        # Show file browser on local host
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            'Select file',
+            os.getcwd(),
+            "(*.json)",
+        )
+        if not filename or not os.path.exists(filename):
+            logger.error('%s does not exist, aborting.', filename)
+            return
+        logger.debug('Uploading %s to %s', filename, hostname)
+        try:
+            upload_filename(
+                hostname=hostname,
+                filename=filename,
+            )
+        except Exception:
+            logger.error('Failed to upload %s to %s', filename, hostname)
+            logger.debug('', exc_info=True)
+        self.tables.update_plc_row_by_hostname(hostname)
+
+    def download_from(self, action: QAction):
+        hostname = action.text()
+        logger.debug('%s download action', hostname)
+
+
+class SummaryTables(DesignerDisplay, QWidget):
     filename = Path(__file__).parent / 'tables.ui'
 
     title_label: QLabel
@@ -35,12 +96,12 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         'file last uploaded',
     ]
     param_dict: dict[str, dict[str, Any]]
+    plc_row_map: dict[str, int]
 
     def __init__(self, plc_hostnames: list[str]):
         super().__init__()
-        if not plc_hostnames:
-            plc_hostnames = DEFAULT_HOSTNAMES
         self.setup_table_columns()
+        self.plc_row_map = {}
         for hostname in plc_hostnames:
             logger.debug('Adding %s', hostname)
             self.add_plc(hostname)
@@ -71,6 +132,7 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         self.plc_table.setItem(row, 1, status_item)
         self.plc_table.setItem(row, 2, upload_time_item)
         self.update_plc_row(row)
+        self.plc_row_map[hostname] = row
 
     def update_plc_row(self, row: int):
         """
@@ -87,7 +149,8 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
             logger.debug('%s found file info %s', hostname, info)
         except Exception:
             info = []
-            logger.debug('%s list_file_info failed', exc_info=True)
+            logger.error('Could not read file list from %s', hostname)
+            logger.debug('list_file_info(%s) failed', hostname, exc_info=True)
         text = 'no file found'
         filename = hostname_to_filename(hostname)
         for file_info in info:
@@ -96,27 +159,44 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
                 break
         self.plc_table.item(row, 2).setText(text)
 
+    def update_plc_row_by_hostname(self, hostname: str):
+        """
+        Update the status information in the PLC table for one hostname.
+        """
+        return self.update_plc_row(self.plc_row_map[hostname])
+
     def fill_device_list(self, hostname: str):
         """
         Cache the PLC's saved db and populate the device list.
         """
         self.device_list.clear()
         self.param_table.clear()
+        filename = hostname_to_filename(hostname)
         try:
             json_info = download_file_json_dict(
-                hostname,
-                hostname_to_filename(hostname),
+                hostname=hostname,
+                filename=filename,
             )
             logger.debug('%s found json info %s', hostname, json_info)
         except Exception:
             json_info = {}
-            logger.debug('%s download_file_json_dict failed', exc_info=True)
+            logger.error(
+                'Could not download %s from %s',
+                filename,
+                hostname,
+            )
+            logger.debug(
+                'download_file_json_dict(%s, %s) failed',
+                hostname,
+                filename,
+                exc_info=True,
+            )
         key = hostname_to_key(hostname)
         try:
             self.param_dict = json_info[key]
         except KeyError:
             self.param_dict = {}
-            logger.debug('%s not found in json info', key)
+            logger.error('Did not find required entry %s', key)
         for device_name in self.param_dict:
             self.device_list.addItem(device_name)
 
@@ -129,6 +209,7 @@ class PMPSManagerGui(DesignerDisplay, QWidget):
         try:
             device_params = self.param_dict[device_name]
         except KeyError:
+            logger.error('Did not find device %s in db', device_name)
             logger.debug(
                 '%s not found in json info',
                 device_name,
@@ -189,4 +270,3 @@ def hostname_to_key(hostname: str):
 
 def hostname_to_filename(hostname: str):
     return hostname_to_key(hostname) + '.json'
-
