@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from pcdsutils.qt import DesignerDisplay
-from qtpy.QtWidgets import (QAction, QFileDialog, QLabel, QListWidget,
-                            QListWidgetItem, QMainWindow, QTableWidget,
-                            QTableWidgetItem, QWidget)
+from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
+                            QListWidget, QListWidgetItem, QMainWindow,
+                            QTableWidget, QTableWidgetItem, QWidget)
 
-from .ftp_data import download_file_json_dict, list_file_info, upload_filename
+from .ftp_data import (download_file_json_dict, download_file_text,
+                       list_file_info, upload_filename)
 
 DEFAULT_HOSTNAMES = [
     'plc-tst-motion',
@@ -77,6 +78,50 @@ class PMPSManagerGui(QMainWindow):
     def download_from(self, action: QAction):
         hostname = action.text()
         logger.debug('%s download action', hostname)
+        # Check the available files
+        try:
+            file_info = list_file_info(hostname=hostname)
+        except Exception:
+            logger.error('Unable to read files from %s', hostname)
+            logger.debug('', exc_info=True)
+            return
+        if not file_info:
+            logger.error('No PMPS files on  %s', hostname)
+            return
+        # Show the user and let the user select one file
+        filename, ok = QInputDialog.getItem(
+            self,
+            'Filenames',
+            'Please select which file to download',
+            [data.filename for data in file_info],
+        )
+        if not ok:
+            return
+        # Download the file
+        try:
+            text = download_file_text(
+                hostname=hostname,
+                filename=filename,
+            )
+        except Exception:
+            logger.error('Error downloading %s from %s', filename, hostname)
+            logger.debug('', exc_info=True)
+            return
+        # Let the user select a place to save the file
+        save_filename, _ = QFileDialog.getSaveFileName(
+            self,
+            'Save file',
+            os.getcwd(),
+            '(*.json)',
+        )
+        if not save_filename:
+            return
+        try:
+            with open(save_filename, 'w') as fd:
+                fd.write(text)
+        except Exception as exc:
+            logger.error('Error writing file: %s', exc)
+            logger.debug('', exc_info=True)
 
 
 class SummaryTables(DesignerDisplay, QWidget):
