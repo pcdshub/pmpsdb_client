@@ -1,3 +1,4 @@
+import copy
 import logging
 import os
 import os.path
@@ -19,6 +20,26 @@ DEFAULT_HOSTNAMES = [
     'plc-tst-pmps-subsystem-b',
 ]
 logger = logging.getLogger(__name__)
+
+PARAMETER_HEADER_ORDER = [
+    'name',
+    'id',
+    'nRate',
+    'nBeamClassRange',
+    'neVRange',
+    'nTran',
+    'ap_name',
+    'ap_xgap',
+    'ap_xcenter',
+    'ap_ygap',
+    'ap_ycenter',
+    'damage_limit',
+    'pulse_energy',
+    'reactive_temp',
+    'reactive_pressure',
+    'notes',
+    'special',
+]
 
 
 class PMPSManagerGui(QMainWindow):
@@ -263,10 +284,11 @@ class SummaryTables(DesignerDisplay, QWidget):
             return
 
         # Lock in the header
-        first_values = list(device_params.values())[0]
-        header = sorted(list(first_values))
-        header.remove('name')
-        header.insert(0, 'name')
+        header_from_file = list(list(device_params.values())[0])
+        header = copy.copy(PARAMETER_HEADER_ORDER)
+        for elem in header_from_file:
+            if elem not in header:
+                header.append(elem)
         self.param_table.setColumnCount(len(header))
         self.param_table.setHorizontalHeaderLabels(header)
 
