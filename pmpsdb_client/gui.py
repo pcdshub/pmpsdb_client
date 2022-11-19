@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, ClassVar
 
+from pcdscalc.pmps import get_bitmask_desc
 from pcdsutils.qt import DesignerDisplay
 from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
                             QListWidget, QListWidgetItem, QMainWindow,
@@ -163,11 +164,13 @@ class SummaryTables(DesignerDisplay, QWidget):
     ]
     param_dict: dict[str, dict[str, Any]]
     plc_row_map: dict[str, int]
+    line: str
 
     def __init__(self, plc_hostnames: list[str]):
         super().__init__()
         self.setup_table_columns()
         self.plc_row_map = {}
+        self.line = 'l'
         for hostname in plc_hostnames:
             logger.debug('Adding %s', hostname)
             self.add_plc(hostname)
@@ -272,6 +275,12 @@ class SummaryTables(DesignerDisplay, QWidget):
         """
         self.param_table.clear()
         self.param_table.setRowCount(0)
+        prefix = device_name.lower().split('-')[0]
+        # Find the last letter in prefix
+        for char in reversed(prefix):
+            if char in ('l', 'k'):
+                self.line = char
+                break
         try:
             device_params = self.param_dict[device_name]
         except KeyError:
@@ -298,8 +307,29 @@ class SummaryTables(DesignerDisplay, QWidget):
             for key, value in state_info.items():
                 col = header.index(key)
                 item = QTableWidgetItem(value)
+                self.set_param_cell_tooltip(item, key, value)
                 self.param_table.setItem(row, col, item)
         self.param_table.resizeColumnsToContents()
+
+    def set_param_cell_tooltip(
+        self,
+        item: QTableWidgetItem,
+        key: str,
+        value: str,
+    ):
+        """
+        Set a tooltip to help out with a single cell in the parameters table.
+        """
+        if key == 'neVRange':
+            bitmask = int(value, base=2)
+            lines = get_bitmask_desc(
+                bitmask=bitmask,
+                line=self.line,
+            )
+        else:
+            # Have not handled this case yet
+            lines = []
+        item.setToolTip('\n'.join(lines))
 
     def plc_selected(self, row: int, col: int):
         """
