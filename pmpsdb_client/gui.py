@@ -306,7 +306,7 @@ class SummaryTables(DesignerDisplay, QWidget):
             self.param_table.insertRow(row)
             for key, value in state_info.items():
                 col = header.index(key)
-                item = QTableWidgetItem(value)
+                item = QTableWidgetItem(str(value))
                 self.set_param_cell_tooltip(item, key, value)
                 self.param_table.setItem(row, col, item)
         self.param_table.resizeColumnsToContents()
