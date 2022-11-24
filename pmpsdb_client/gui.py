@@ -14,6 +14,7 @@ from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
 
 from .ftp_data import (download_file_json_dict, download_file_text,
                        list_file_info, upload_filename)
+from .ioc_data import AllStateBP
 
 DEFAULT_HOSTNAMES = [
     'plc-tst-motion',
@@ -156,6 +157,8 @@ class SummaryTables(DesignerDisplay, QWidget):
     device_list: QListWidget
     param_label: QLabel
     param_table: QTableWidget
+    ioc_label: QLabel
+    ioc_table: QTableWidget
 
     plc_columns: ClassVar[list[str]] = [
         'plc name',
@@ -300,16 +303,46 @@ class SummaryTables(DesignerDisplay, QWidget):
                 header.append(elem)
         self.param_table.setColumnCount(len(header))
         self.param_table.setHorizontalHeaderLabels(header)
+        self._fill_params(
+            table=self.param_table,
+            header=header,
+            params=device_params,
+        )
+        self.ioc_table.setColumnCount(len(header))
+        self.ioc_table.setHorizontalHeaderLabels(header)
+        prefix = self.get_states_prefix(device_name)
+        states = AllStateBP(prefix, name='states')
+        try:
+            ioc_params = states.get_table_data()
+        except TimeoutError:
+            pass
+        else:
+            self._fill_params(
+                table=self.ioc_table,
+                header=header,
+                params=ioc_params,
+            )
 
-        for state_info in device_params.values():
-            row = self.param_table.rowCount()
-            self.param_table.insertRow(row)
+    def _fill_params(self, table, header, params) -> None:
+        for state_info in params.values():
+            row = table.rowCount()
+            table.insertRow(row)
             for key, value in state_info.items():
                 col = header.index(key)
-                item = QTableWidgetItem(str(value))
+                value = str(value)
+                item = QTableWidgetItem(value)
                 self.set_param_cell_tooltip(item, key, value)
-                self.param_table.setItem(row, col, item)
-        self.param_table.resizeColumnsToContents()
+                table.setItem(row, col, item)
+        table.resizeColumnsToContents()
+
+    def get_states_prefix(self, device_name: str) -> str:
+        """
+        Get the PV prefix that corresponds to the device name.
+        """
+        # Test PLC PV
+        return 'PLC:TST:MOT:SIM:XPIM:MMS:STATE:'
+        # This probably works?
+        return device_name.replace('-', ':') + ':MMS:STATES:'
 
     def set_param_cell_tooltip(
         self,
