@@ -126,7 +126,7 @@ class PLCFile:
         month, day, year = date.split('-')
         hour, minute = time.split(':')
         full_datetime = datetime.datetime(
-            year=int(year),
+            year=int(year) + 2000,
             month=int(month),
             day=int(day),
             hour=int(hour),
