@@ -3,10 +3,9 @@ import logging
 
 from qtpy.QtWidgets import QApplication
 
-from .ftp_data import (list_file_info, upload_filename, download_file_text,
-                       compare_file)
+from .ftp_data import (compare_file, download_file_text, list_file_info,
+                       upload_filename)
 from .gui import PMPSManagerGui
-
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +16,7 @@ def create_parser() -> argparse.ArgumentParser:
         description='PMPS database deployment helpers',
     )
     parser.add_argument(
-        '-v', '--verbose',
+        '--verbose', '-v',
         action='store_true',
         help='Show tracebacks and debug statements',
     )
@@ -27,11 +26,10 @@ def create_parser() -> argparse.ArgumentParser:
         help='Open the pmpsdb gui.',
     )
     gui.add_argument(
-        'hostnames',
-        nargs='*',
+        '--config', '--cfg',
+        default=None,
         help=(
-            'List the PLCs to include in the gui. '
-            'If omitted, defaults to all production PLCs.'
+            'Configuration file that maps hostnames to IOC PREFIX',
         ),
     )
     plc = subparsers.add_parser(
@@ -40,22 +38,22 @@ def create_parser() -> argparse.ArgumentParser:
     )
     plc.add_argument('hostname', help='The plc to connect to.')
     plc.add_argument(
-        '-l', '--list',
+        '--list', '-l',
         action='store_true',
         help='List the plc pmps db files and their info.',
     )
     plc.add_argument(
-        '-d', '--download',
+        '--download', '-d',
         action='store',
         help='PLC filename to download to stdout.',
     )
     plc.add_argument(
-        '-u', '--upload',
+        '--upload', '-u',
         action='store',
         help='Local filename to upload to the PLC.',
     )
     plc.add_argument(
-        '-c', '--compare',
+        '--compare', '-c',
         action='store',
         help='Filename on both PLC and local to compare.',
     )
@@ -84,7 +82,7 @@ def _main(args: argparse.Namespace):
 
 def gui(args: argparse.Namespace):
     app = QApplication([])
-    gui = PMPSManagerGui(plc_hostnames=args.hostnames)
+    gui = PMPSManagerGui(config=args.config)
     gui.show()
     return app.exec()
 
@@ -111,4 +109,3 @@ def plc(args: argparse.Namespace):
             )
         if not infos:
             logger.warning('No files found')
-

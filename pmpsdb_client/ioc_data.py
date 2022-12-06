@@ -20,6 +20,11 @@ class PLCDBControls(Device):
         write_pv='DB:REFRESH',
         doc='Cause the PLC to re-read from the database file.',
     )
+    last_refresh = Cpt(
+        EpicsSignalRO,
+        'DB:LAST_REFRESH_RBV',
+        doc='UNIX timestamp of the last file re-read.'
+    )
 
 
 class StateBeamParameters(Device):

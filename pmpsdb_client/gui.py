@@ -1,11 +1,13 @@
 import copy
+import datetime
 import logging
 import os
 import os.path
 import subprocess
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Optional
 
+import yaml
 from pcdscalc.pmps import get_bitmask_desc
 from pcdsutils.qt import DesignerDisplay
 from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
@@ -14,13 +16,8 @@ from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
 
 from .ftp_data import (download_file_json_dict, download_file_text,
                        list_file_info, upload_filename)
-from .ioc_data import AllStateBP
+from .ioc_data import AllStateBP, PLCDBControls
 
-DEFAULT_HOSTNAMES = [
-    'plc-tst-motion',
-    'plc-tst-pmps-subsystem-a',
-    'plc-tst-pmps-subsystem-b',
-]
 logger = logging.getLogger(__name__)
 
 PARAMETER_HEADER_ORDER = [
@@ -45,12 +42,14 @@ PARAMETER_HEADER_ORDER = [
 
 
 class PMPSManagerGui(QMainWindow):
-    def __init__(self, plc_hostnames: list[str]):
+    def __init__(self, config: Optional[str]):
         super().__init__()
-        if not plc_hostnames:
-            plc_hostnames = DEFAULT_HOSTNAMES
-        self.plc_hostnames = plc_hostnames
-        self.tables = SummaryTables(plc_hostnames=plc_hostnames)
+        if config is None:
+            config = str(Path(__file__).parent / 'pmpsdb_test.yml')
+        with open(config, 'r') as fd:
+            self.plc_config = yaml.full_load(fd)
+        self.plc_hostnames = list(self.plc_config)
+        self.tables = SummaryTables(plc_config=self.plc_config)
         self.setCentralWidget(self.tables)
         self.setup_menu_options()
 
@@ -164,17 +163,22 @@ class SummaryTables(DesignerDisplay, QWidget):
         'plc name',
         'status',
         'file last uploaded',
+        'params last loaded',
     ]
     param_dict: dict[str, dict[str, Any]]
     plc_row_map: dict[str, int]
     line: str
 
-    def __init__(self, plc_hostnames: list[str]):
+    def __init__(self, plc_config: dict[str, str]):
         super().__init__()
+        self.db_controls = {
+            name: PLCDBControls(prefix=prefix + ':', name=name)
+            for name, prefix in plc_config.items()
+        }
         self.setup_table_columns()
         self.plc_row_map = {}
         self.line = 'l'
-        for hostname in plc_hostnames:
+        for hostname in plc_config:
             logger.debug('Adding %s', hostname)
             self.add_plc(hostname)
         self.plc_table.resizeColumnsToContents()
@@ -200,15 +204,29 @@ class SummaryTables(DesignerDisplay, QWidget):
         name_item = QTableWidgetItem(hostname)
         status_item = QTableWidgetItem()
         upload_time_item = QTableWidgetItem()
+        param_load_time = QTableWidgetItem()
         self.plc_table.setItem(row, 0, name_item)
         self.plc_table.setItem(row, 1, status_item)
         self.plc_table.setItem(row, 2, upload_time_item)
+        self.plc_table.setItem(row, 3, param_load_time)
         self.update_plc_row(row)
         self.plc_row_map[hostname] = row
+
+        def on_refresh(value, **kwargs):
+            param_load_time.setText(
+                datetime.datetime.fromtimestamp(value).ctime()
+            )
+
+        self.db_controls[hostname].last_refresh.subscribe(on_refresh)
 
     def update_plc_row(self, row: int):
         """
         Update the status information in the PLC table for one row.
+
+        This is limited to the file read actions. We'll do this once on
+        startup and again when the row is selected.
+        Data source from PVs will be updated on monitor outside the scope
+        of this method.
         """
         hostname = self.plc_table.item(row, 0).text()
         if check_server_online(hostname):
