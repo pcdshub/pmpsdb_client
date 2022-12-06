@@ -12,7 +12,8 @@ from pcdscalc.pmps import get_bitmask_desc
 from pcdsutils.qt import DesignerDisplay
 from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
                             QListWidget, QListWidgetItem, QMainWindow,
-                            QTableWidget, QTableWidgetItem, QWidget)
+                            QMessageBox, QTableWidget, QTableWidgetItem,
+                            QWidget)
 
 from .ftp_data import (download_file_json_dict, download_file_text,
                        list_file_info, upload_filename)
@@ -58,6 +59,7 @@ class PMPSManagerGui(QMainWindow):
         file_menu = menu.addMenu('&File')
         upload_menu = file_menu.addMenu('&Upload to')
         download_menu = file_menu.addMenu('&Download from')
+        reload_menu = file_menu.addMenu('&Reload Params')
         # Actions will be garbage collected if we drop this reference
         self.actions = []
         for plc in self.plc_hostnames:
@@ -67,10 +69,15 @@ class PMPSManagerGui(QMainWindow):
             download_action = QAction(plc)
             download_action.setText(plc)
             download_menu.addAction(download_action)
+            reload_action = QAction(plc)
+            reload_action.setText(plc)
+            reload_menu.addAction(reload_action)
             self.actions.append(upload_action)
             self.actions.append(download_action)
+            self.actions.append(reload_action)
         upload_menu.triggered.connect(self.upload_to)
         download_menu.triggered.connect(self.download_from)
+        reload_menu.triggered.connect(self.reload_params)
         self.setMenuWidget(menu)
 
     def upload_to(self, action: QAction):
@@ -143,6 +150,28 @@ class PMPSManagerGui(QMainWindow):
                 fd.write(text)
         except Exception as exc:
             logger.error('Error writing file: %s', exc)
+            logger.debug('', exc_info=True)
+
+    def reload_params(self, action: QAction):
+        hostname = action.text()
+        logger.debug('%s reload action', hostname)
+        # Confirmation dialog, this is kind of bad to do accidentally
+        reply = QMessageBox.question(
+            self,
+            'Confirm reload',
+            (
+                'Are you sure you want to reload the '
+                f'parameters on {hostname}? '
+                'Note that this will apply to and affect ongoing experiments.'
+            ),
+        )
+        if reply != QMessageBox.Yes:
+            return
+        # Just put to the pv
+        try:
+            self.tables.db_controls[hostname].refresh.put(1)
+        except Exception as exc:
+            logger.error('Error starting param reload for %s: %s', hostname, exc)
             logger.debug('', exc_info=True)
 
 
