@@ -1,0 +1,5 @@
+ophyd
+pcdscalc
+pcdsutils
+prettytable
+qtpy
