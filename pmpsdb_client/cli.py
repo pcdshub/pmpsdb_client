@@ -1,13 +1,6 @@
 import argparse
 import logging
 
-from qtpy.QtWidgets import QApplication
-from setuptools_scm import get_version
-
-from .ftp_data import (compare_file, download_file_text, list_file_info,
-                       upload_filename)
-from .gui import PMPSManagerGui
-
 logger = logging.getLogger(__name__)
 
 
@@ -81,7 +74,8 @@ def _main(args: argparse.Namespace):
             # Installed package
             from ._version import __version__ as version
         except ImportError:
-            # Git checkout
+            # Git checkout (late import for startup speed)
+            from setuptools_scm import get_version
             version = get_version(root="..", relative_to=__file__)
         print(version)
         return
@@ -96,6 +90,10 @@ def _main(args: argparse.Namespace):
 
 
 def gui(args: argparse.Namespace):
+    # Late import for startup speed
+    from qtpy.QtWidgets import QApplication
+
+    from .gui import PMPSManagerGui
     app = QApplication([])
     gui = PMPSManagerGui(config=args.config)
     gui.show()
@@ -103,6 +101,9 @@ def gui(args: argparse.Namespace):
 
 
 def plc(args: argparse.Namespace):
+    # Late import for startup speed
+    from .ftp_data import (compare_file, download_file_text, list_file_info,
+                           upload_filename)
     hostname = args.hostname
     if args.download:
         print(download_file_text(hostname=hostname, filename=args.download))
