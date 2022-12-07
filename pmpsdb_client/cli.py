@@ -28,7 +28,7 @@ def create_parser() -> argparse.ArgumentParser:
         '--config', '--cfg',
         default=None,
         help=(
-            'Configuration file that maps hostnames to IOC PREFIX',
+            'Configuration file that maps hostnames to IOC PREFIX'
         ),
     )
     plc = subparsers.add_parser(
