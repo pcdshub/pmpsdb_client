@@ -2,6 +2,7 @@ import argparse
 import logging
 
 from qtpy.QtWidgets import QApplication
+from setuptools_scm import get_version
 
 from .ftp_data import (compare_file, download_file_text, list_file_info,
                        upload_filename)
@@ -14,6 +15,11 @@ def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog='pmpsdb',
         description='PMPS database deployment helpers',
+    )
+    parser.add_argument(
+        '--version',
+        action='store_true',
+        help='Show version information and exit'
     )
     parser.add_argument(
         '--verbose', '-v',
@@ -70,6 +76,15 @@ def main(args: argparse.Namespace):
 
 
 def _main(args: argparse.Namespace):
+    if args.version:
+        try:
+            # Installed package
+            from ._version import __version__ as version
+        except ImportError:
+            # Git checkout
+            version = get_version(root="..", relative_to=__file__)
+        print(version)
+        return
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:
