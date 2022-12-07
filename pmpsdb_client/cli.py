@@ -94,6 +94,7 @@ def gui(args: argparse.Namespace):
     from qtpy.QtWidgets import QApplication
 
     from .gui import PMPSManagerGui
+
     app = QApplication([])
     gui = PMPSManagerGui(config=args.config)
     gui.show()
