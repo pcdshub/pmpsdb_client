@@ -42,9 +42,8 @@ class BeamClass:
 
 # Copied from https://confluence.slac.stanford.edu/pages/viewpage.action?pageId=341246543 and tweaked
 header = """
-Index	Display Name	∆T	dt	Q	Rate max	Current	Power @ 4 GeV	Int. Energy @ 4 GeV	Notes
+Index	Display Name	∆T (s)	dt (s)	Q (pC)	Rate max (Hz)	Current (nA)	Power @ 4 GeV (W)	Int. Energy @ 4 GeV (J)	Notes
 """.strip().split('\t')
-units = "-   -   s	s	pC	Hz	nA	W	J   -"
 table = """
 0	Beam Off	0.5	-	0	0	0	0	0	Beam off, Kickers off
 1	Kicker STBY	0.5	-	0	0	0	0	0	Beam off, Kickers standby
@@ -90,7 +89,10 @@ def summarize_beam_class_bitmask(bitmask: int) -> str:
         else:
             row_data = ['No']
         for attr in data_attrs:
-            row_data.append(getattr(beam_class, attr))
+            value = getattr(beam_class, attr)
+            if value is None:
+                value = '-'
+            row_data.append(value)
         table.add_row(row_data)
 
     # First row is no beam, which is always ok
