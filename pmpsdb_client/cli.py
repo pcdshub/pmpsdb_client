@@ -4,6 +4,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def entrypoint():
+    return main(create_parser().parse_args())
+
+
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog='pmpsdb',

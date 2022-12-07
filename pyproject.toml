@@ -25,7 +25,7 @@ dynamic = ["version"]
 gui = ["PyQt5"]
 
 [project.scripts]
-pmpsdb = "pmpsdb_client"
+pmpsdb = "pmpsdb_client:cli.entrypoint"
 
 # ... other project metadata fields as specified in:
 #     https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
