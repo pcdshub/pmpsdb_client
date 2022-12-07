@@ -1,6 +1,8 @@
 import dataclasses
 from typing import Optional, Union, get_args, get_origin
 
+from prettytable import PrettyTable
+
 
 @dataclasses.dataclass(frozen=True)
 class BeamClass:
@@ -41,8 +43,8 @@ class BeamClass:
 # Copied from https://confluence.slac.stanford.edu/pages/viewpage.action?pageId=341246543 and tweaked
 header = """
 Index	Display Name	∆T	dt	Q	Rate max	Current	Power @ 4 GeV	Int. Energy @ 4 GeV	Notes
--   -   s	s	pC	Hz	nA	W	J   -
-"""
+""".strip().split('\t')
+units = "-   -   s	s	pC	Hz	nA	W	J   -"
 table = """
 0	Beam Off	0.5	-	0	0	0	0	0	Beam off, Kickers off
 1	Kicker STBY	0.5	-	0	0	0	0	0	Beam off, Kickers standby
@@ -58,6 +60,8 @@ table = """
 11	50% MAP	2e-1	-	3000	-	15000	60000	12	100 pC x 150 kHz
 12	100% MAP	2e-4	-	6000	-	30000	120000	24	100 pC x 300 kHz
 13	Unlimited	-	-	-	-	-	-	-	-
+14	Spare	-	-	-	-	-	-	-	-
+15	Spare	-	-	-	-	-	-	-	-
 """
 
 beam_classes: list[BeamClass] = []
@@ -70,3 +74,30 @@ for line in table.split('\n'):
         if entry == '-':
             entries[i] = None
     beam_classes.append(BeamClass.from_strs(*entries))
+
+
+def summarize_beam_class_bitmask(bitmask: int) -> str:
+    """
+    Creates a nice table summarizing what the bitmask means.
+    """
+    table = PrettyTable()
+    table.field_names = ['OK'] + header
+    data_attrs = [field.name for field in dataclasses.fields(BeamClass)]
+
+    def add_row(ok: bool, beam_class: BeamClass) -> None:
+        if ok:
+            row_data = ['Yes']
+        else:
+            row_data = ['No']
+        for attr in data_attrs:
+            row_data.append(getattr(beam_class, attr))
+        table.add_row(row_data)
+
+    # First row is no beam, which is always ok
+    add_row(ok=True, beam_class=beam_classes[0])
+    # The rest of the rows check the bitmask
+    for beam_class in beam_classes[1:]:
+        add_row(ok=bitmask & 1, beam_class=beam_class)
+        bitmask = bitmask >> 1
+
+    return table.get_string()

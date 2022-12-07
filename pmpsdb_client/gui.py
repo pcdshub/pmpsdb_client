@@ -15,6 +15,7 @@ from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
                             QMessageBox, QTableWidget, QTableWidgetItem,
                             QWidget)
 
+from .beam_class import summarize_beam_class_bitmask
 from .ftp_data import (download_file_json_dict, download_file_text,
                        list_file_info, upload_filename)
 from .ioc_data import AllStateBP, PLCDBControls
@@ -400,16 +401,20 @@ class SummaryTables(DesignerDisplay, QWidget):
         """
         Set a tooltip to help out with a single cell in the parameters table.
         """
-        if key == 'neVRange':
+        if key == 'nBeamClassRange':
+            bitmask = int(value, base=2)
+            text = summarize_beam_class_bitmask(bitmask)
+        elif key == 'neVRange':
             bitmask = int(value, base=2)
             lines = get_bitmask_desc(
                 bitmask=bitmask,
                 line=self.line,
             )
+            text = '\n'.join(lines)
         else:
             # Have not handled this case yet
-            lines = []
-        item.setToolTip('\n'.join(lines))
+            return
+        item.setToolTip('<pre>' + text + '</pre>')
 
     def plc_selected(self, row: int, col: int):
         """
