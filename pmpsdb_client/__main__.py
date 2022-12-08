@@ -1,3 +1,3 @@
-from .cli import create_parser, main
+from .cli import entrypoint
 
-main(create_parser().parse_args())
+entrypoint()

@@ -1,41 +1,88 @@
+"""
+Module to definte the graphical user interface for pmpsdb.
+
+This is the locally run interface that allows us to communicate
+with both the database and the PLCs, showing useful diagnostic
+information and allowing file transfers.
+"""
+import copy
+import datetime
 import logging
 import os
 import os.path
 import subprocess
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Optional
 
+import yaml
+from pcdscalc.pmps import get_bitmask_desc
 from pcdsutils.qt import DesignerDisplay
 from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
                             QListWidget, QListWidgetItem, QMainWindow,
-                            QTableWidget, QTableWidgetItem, QWidget)
+                            QMessageBox, QTableWidget, QTableWidgetItem,
+                            QWidget)
 
+from .beam_class import summarize_beam_class_bitmask
 from .ftp_data import (download_file_json_dict, download_file_text,
                        list_file_info, upload_filename)
+from .ioc_data import AllStateBP, PLCDBControls
 
-DEFAULT_HOSTNAMES = [
-    'plc-tst-motion',
-    'plc-tst-pmps-subsystem-a',
-    'plc-tst-pmps-subsystem-b',
-]
 logger = logging.getLogger(__name__)
+
+PARAMETER_HEADER_ORDER = [
+    'name',
+    'id',
+    'nRate',
+    'nBeamClassRange',
+    'neVRange',
+    'nTran',
+    'ap_name',
+    'ap_xgap',
+    'ap_xcenter',
+    'ap_ygap',
+    'ap_ycenter',
+    'damage_limit',
+    'pulse_energy',
+    'reactive_temp',
+    'reactive_pressure',
+    'notes',
+    'special',
+]
 
 
 class PMPSManagerGui(QMainWindow):
-    def __init__(self, plc_hostnames: list[str]):
+    """
+    The main GUI window for pmpsdb_client.
+
+    This defines the file actions menu and creates the SummaryTables widget.
+
+    Parameters
+    ----------
+    config : str, optional
+        The path to the configuration file. The configuration file is
+        expected to be a yaml mapping from plc name to IOC prefix PV.
+        The configuration file may be expanded in the future.
+    """
+    def __init__(self, config: Optional[str]):
         super().__init__()
-        if not plc_hostnames:
-            plc_hostnames = DEFAULT_HOSTNAMES
-        self.plc_hostnames = plc_hostnames
-        self.tables = SummaryTables(plc_hostnames=plc_hostnames)
+        if config is None:
+            config = str(Path(__file__).parent / 'pmpsdb_test.yml')
+        with open(config, 'r') as fd:
+            self.plc_config = yaml.full_load(fd)
+        self.plc_hostnames = list(self.plc_config)
+        self.tables = SummaryTables(plc_config=self.plc_config)
         self.setCentralWidget(self.tables)
         self.setup_menu_options()
 
     def setup_menu_options(self):
+        """
+        Create entries and actions in the menu for all configured PLCs.
+        """
         menu = self.menuBar()
         file_menu = menu.addMenu('&File')
         upload_menu = file_menu.addMenu('&Upload to')
         download_menu = file_menu.addMenu('&Download from')
+        reload_menu = file_menu.addMenu('&Reload Params')
         # Actions will be garbage collected if we drop this reference
         self.actions = []
         for plc in self.plc_hostnames:
@@ -45,13 +92,21 @@ class PMPSManagerGui(QMainWindow):
             download_action = QAction(plc)
             download_action.setText(plc)
             download_menu.addAction(download_action)
+            reload_action = QAction(plc)
+            reload_action.setText(plc)
+            reload_menu.addAction(reload_action)
             self.actions.append(upload_action)
             self.actions.append(download_action)
+            self.actions.append(reload_action)
         upload_menu.triggered.connect(self.upload_to)
         download_menu.triggered.connect(self.download_from)
+        reload_menu.triggered.connect(self.reload_params)
         self.setMenuWidget(menu)
 
-    def upload_to(self, action: QAction):
+    def upload_to(self, action: QAction) -> None:
+        """
+        Upload a file from the local filesystem to a plc.
+        """
         hostname = action.text()
         logger.debug('%s upload action', hostname)
         # Show file browser on local host
@@ -75,7 +130,10 @@ class PMPSManagerGui(QMainWindow):
             logger.debug('', exc_info=True)
         self.tables.update_plc_row_by_hostname(hostname)
 
-    def download_from(self, action: QAction):
+    def download_from(self, action: QAction) -> None:
+        """
+        Download a file from a plc to the local filesystem.
+        """
         hostname = action.text()
         logger.debug('%s download action', hostname)
         # Check the available files
@@ -123,8 +181,43 @@ class PMPSManagerGui(QMainWindow):
             logger.error('Error writing file: %s', exc)
             logger.debug('', exc_info=True)
 
+    def reload_params(self, action: QAction) -> None:
+        """
+        Command a PLC to reload its PMPS parameters from the database file.
+        """
+        hostname = action.text()
+        logger.debug('%s reload action', hostname)
+        # Confirmation dialog, this is kind of bad to do accidentally
+        reply = QMessageBox.question(
+            self,
+            'Confirm reload',
+            (
+                'Are you sure you want to reload the '
+                f'parameters on {hostname}? '
+                'Note that this will apply to and affect ongoing experiments.'
+            ),
+        )
+        if reply != QMessageBox.Yes:
+            return
+        # Just put to the pv
+        try:
+            self.tables.db_controls[hostname].refresh.put(1)
+        except Exception as exc:
+            logger.error('Error starting param reload for %s: %s', hostname, exc)
+            logger.debug('', exc_info=True)
+
 
 class SummaryTables(DesignerDisplay, QWidget):
+    """
+    Widget that contains tables of information about deployed PLC databases.
+
+    Parameters
+    ----------
+    plc_config : dict[str, str]
+        The loaded configuration file. The configuration file is
+        expected to be a yaml mapping from plc name to IOC prefix PV.
+        The configuration file may be expanded in the future.
+    """
     filename = Path(__file__).parent / 'tables.ui'
 
     title_label: QLabel
@@ -134,20 +227,32 @@ class SummaryTables(DesignerDisplay, QWidget):
     device_list: QListWidget
     param_label: QLabel
     param_table: QTableWidget
+    ioc_label: QLabel
+    ioc_table: QTableWidget
 
     plc_columns: ClassVar[list[str]] = [
         'plc name',
         'status',
         'file last uploaded',
+        'params last loaded',
     ]
     param_dict: dict[str, dict[str, Any]]
     plc_row_map: dict[str, int]
+    line: str
 
-    def __init__(self, plc_hostnames: list[str]):
+    def __init__(self, plc_config: dict[str, str]):
         super().__init__()
+        self.db_controls = {
+            name: PLCDBControls(prefix=prefix + ':', name=name)
+            for name, prefix in plc_config.items()
+        }
         self.setup_table_columns()
         self.plc_row_map = {}
-        for hostname in plc_hostnames:
+        self.line = 'l'
+        self._test_mode = False
+        for hostname in plc_config:
+            if '-tst-' in hostname:
+                self._test_mode = True
             logger.debug('Adding %s', hostname)
             self.add_plc(hostname)
         self.plc_table.resizeColumnsToContents()
@@ -157,31 +262,46 @@ class SummaryTables(DesignerDisplay, QWidget):
         self.plc_table.cellActivated.connect(self.plc_selected)
         self.device_list.itemActivated.connect(self.device_selected)
 
-    def setup_table_columns(self):
+    def setup_table_columns(self) -> None:
         """
         Set the column headers on the plc and parameter tables.
         """
         self.plc_table.setColumnCount(len(self.plc_columns))
         self.plc_table.setHorizontalHeaderLabels(self.plc_columns)
 
-    def add_plc(self, hostname: str):
+    def add_plc(self, hostname: str) -> None:
         """
-        Add a PLC row in the table on the left.
+        Add a PLC row to the table on the left.
         """
         row = self.plc_table.rowCount()
         self.plc_table.insertRow(row)
         name_item = QTableWidgetItem(hostname)
         status_item = QTableWidgetItem()
         upload_time_item = QTableWidgetItem()
+        param_load_time = QTableWidgetItem()
         self.plc_table.setItem(row, 0, name_item)
         self.plc_table.setItem(row, 1, status_item)
         self.plc_table.setItem(row, 2, upload_time_item)
+        self.plc_table.setItem(row, 3, param_load_time)
         self.update_plc_row(row)
         self.plc_row_map[hostname] = row
 
-    def update_plc_row(self, row: int):
+        def on_refresh(value, **kwargs):
+            param_load_time.setText(
+                datetime.datetime.fromtimestamp(value).ctime()
+            )
+
+        param_load_time.setText('no connect')
+        self.db_controls[hostname].last_refresh.subscribe(on_refresh)
+
+    def update_plc_row(self, row: int) -> None:
         """
         Update the status information in the PLC table for one row.
+
+        This is limited to the file read actions. We'll do this once on
+        startup and again when the row is selected.
+        Data source from PVs will be updated on monitor outside the scope
+        of this method.
         """
         hostname = self.plc_table.item(row, 0).text()
         if check_server_online(hostname):
@@ -204,13 +324,13 @@ class SummaryTables(DesignerDisplay, QWidget):
                 break
         self.plc_table.item(row, 2).setText(text)
 
-    def update_plc_row_by_hostname(self, hostname: str):
+    def update_plc_row_by_hostname(self, hostname: str) -> None:
         """
         Update the status information in the PLC table for one hostname.
         """
         return self.update_plc_row(self.plc_row_map[hostname])
 
-    def fill_device_list(self, hostname: str):
+    def fill_device_list(self, hostname: str) -> None:
         """
         Cache the PLC's saved db and populate the device list.
         """
@@ -245,12 +365,18 @@ class SummaryTables(DesignerDisplay, QWidget):
         for device_name in self.param_dict:
             self.device_list.addItem(device_name)
 
-    def fill_parameter_table(self, device_name: str):
+    def fill_parameter_table(self, device_name: str) -> None:
         """
         Use the cached db to show a single device's parameters in the table.
         """
         self.param_table.clear()
         self.param_table.setRowCount(0)
+        prefix = device_name.lower().split('-')[0]
+        # Find the last letter in prefix
+        for char in reversed(prefix):
+            if char in ('l', 'k'):
+                self.line = char
+                break
         try:
             device_params = self.param_dict[device_name]
         except KeyError:
@@ -263,23 +389,80 @@ class SummaryTables(DesignerDisplay, QWidget):
             return
 
         # Lock in the header
-        first_values = list(device_params.values())[0]
-        header = sorted(list(first_values))
-        header.remove('name')
-        header.insert(0, 'name')
+        header_from_file = list(list(device_params.values())[0])
+        header = copy.copy(PARAMETER_HEADER_ORDER)
+        for elem in header_from_file:
+            if elem not in header:
+                header.append(elem)
         self.param_table.setColumnCount(len(header))
         self.param_table.setHorizontalHeaderLabels(header)
+        self._fill_params(
+            table=self.param_table,
+            header=header,
+            params=device_params,
+        )
+        self.ioc_table.setColumnCount(len(header))
+        self.ioc_table.setHorizontalHeaderLabels(header)
+        prefix = self.get_states_prefix(device_name)
+        states = AllStateBP(prefix, name='states')
+        try:
+            ioc_params = states.get_table_data()
+        except TimeoutError:
+            pass
+        else:
+            self._fill_params(
+                table=self.ioc_table,
+                header=header,
+                params=ioc_params,
+            )
 
-        for state_info in device_params.values():
-            row = self.param_table.rowCount()
-            self.param_table.insertRow(row)
+    def _fill_params(self, table, header, params) -> None:
+        for state_info in params.values():
+            row = table.rowCount()
+            table.insertRow(row)
             for key, value in state_info.items():
                 col = header.index(key)
+                value = str(value)
                 item = QTableWidgetItem(value)
-                self.param_table.setItem(row, col, item)
-        self.param_table.resizeColumnsToContents()
+                self.set_param_cell_tooltip(item, key, value)
+                table.setItem(row, col, item)
+        table.resizeColumnsToContents()
 
-    def plc_selected(self, row: int, col: int):
+    def get_states_prefix(self, device_name: str) -> str:
+        """
+        Get the PV prefix that corresponds to the device name.
+        """
+        if self._test_mode:
+            # Test PLC PV TODO remove this later
+            return 'PLC:TST:MOT:SIM:XPIM:MMS:STATE:'
+        # This probably works?
+        return device_name.replace('-', ':') + ':MMS:STATES:'
+
+    def set_param_cell_tooltip(
+        self,
+        item: QTableWidgetItem,
+        key: str,
+        value: str,
+    ) -> None:
+        """
+        Set a tooltip to help out with a single cell in the parameters table.
+        """
+        if key == 'nBeamClassRange':
+            bitmask = int(value, base=2)
+            text = summarize_beam_class_bitmask(bitmask)
+        elif key == 'neVRange':
+            bitmask = int(value, base=2)
+            lines = get_bitmask_desc(
+                bitmask=bitmask,
+                line=self.line,
+            )
+            text = '\n'.join(lines)
+        else:
+            # Have not handled this case yet
+            return
+        item.setToolTip('<pre>' + text + '</pre>')
+
+    def plc_selected(self, row: int, col: int) -> None:
         """
         When a plc is selected, reset and seed the device list.
         """
@@ -287,14 +470,17 @@ class SummaryTables(DesignerDisplay, QWidget):
         hostname = self.plc_table.item(row, 0).text()
         self.fill_device_list(hostname)
 
-    def device_selected(self, item: QListWidgetItem):
+    def device_selected(self, item: QListWidgetItem) -> None:
         """
         When a device is selected, reset and seed the parameter list.
         """
         self.fill_parameter_table(item.text())
 
 
-def check_server_online(hostname: str):
+def check_server_online(hostname: str) -> bool:
+    """
+    Ping a hostname to determine if it is network accessible or not.
+    """
     try:
         subprocess.run(
             ['ping', '-c', '1', hostname],
@@ -306,12 +492,18 @@ def check_server_online(hostname: str):
         return False
 
 
-def hostname_to_key(hostname: str):
+def hostname_to_key(hostname: str) -> str:
+    """
+    Given a hostname, get the database key associated with it.
+    """
     if hostname.startswith('plc-'):
         return hostname[4:]
     else:
         return hostname
 
 
-def hostname_to_filename(hostname: str):
+def hostname_to_filename(hostname: str) -> str:
+    """
+    Given a hostname, get the filename associated with it.
+    """
     return hostname_to_key(hostname) + '.json'

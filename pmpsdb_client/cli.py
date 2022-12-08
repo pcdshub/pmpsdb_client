@@ -1,23 +1,39 @@
+"""
+Module to define the command-line interface for pmpsdb database management.
+
+Once installed, this can be invoked simply by using the ``pmpsdb`` command.
+It can also be run via ``python -m pmpsdb`` from the repository root if you
+have not or cannot install it.
+"""
 import argparse
 import logging
-
-from qtpy.QtWidgets import QApplication
-
-from .ftp_data import (list_file_info, upload_filename, download_file_text,
-                       compare_file)
-from .gui import PMPSManagerGui
-
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
+def entrypoint() -> Optional[int]:
+    """
+    This is the function called when you run ``pmpsdb``
+    """
+    return main(create_parser().parse_args())
+
+
 def create_parser() -> argparse.ArgumentParser:
+    """
+    Create the parser used to process command-line input.
+    """
     parser = argparse.ArgumentParser(
         prog='pmpsdb',
         description='PMPS database deployment helpers',
     )
     parser.add_argument(
-        '-v', '--verbose',
+        '--version',
+        action='store_true',
+        help='Show version information and exit'
+    )
+    parser.add_argument(
+        '--verbose', '-v',
         action='store_true',
         help='Show tracebacks and debug statements',
     )
@@ -27,11 +43,10 @@ def create_parser() -> argparse.ArgumentParser:
         help='Open the pmpsdb gui.',
     )
     gui.add_argument(
-        'hostnames',
-        nargs='*',
+        '--config', '--cfg',
+        default=None,
         help=(
-            'List the PLCs to include in the gui. '
-            'If omitted, defaults to all production PLCs.'
+            'Configuration file that maps hostnames to IOC PREFIX'
         ),
     )
     plc = subparsers.add_parser(
@@ -40,38 +55,54 @@ def create_parser() -> argparse.ArgumentParser:
     )
     plc.add_argument('hostname', help='The plc to connect to.')
     plc.add_argument(
-        '-l', '--list',
+        '--list', '-l',
         action='store_true',
         help='List the plc pmps db files and their info.',
     )
     plc.add_argument(
-        '-d', '--download',
+        '--download', '-d',
         action='store',
         help='PLC filename to download to stdout.',
     )
     plc.add_argument(
-        '-u', '--upload',
+        '--upload', '-u',
         action='store',
         help='Local filename to upload to the PLC.',
     )
     plc.add_argument(
-        '-c', '--compare',
+        '--compare', '-c',
         action='store',
         help='Filename on both PLC and local to compare.',
     )
     return parser
 
 
-def main(args: argparse.Namespace):
+def main(args: argparse.Namespace) -> Optional[int]:
+    """
+    Given some arguments, run the command-line program.
+
+    This outer function exists only to handle uncaught exceptions.
+    """
     try:
-        _main(args)
+        return _main(args)
     except Exception as exc:
         if args.verbose:
             raise
         print(exc)
+        return 1
 
 
-def _main(args: argparse.Namespace):
+def _main(args: argparse.Namespace) -> Optional[int]:
+    """
+    Given some arguments, run the command-line program.
+
+    This inner function does some setup and then defers to the more specific
+    helper function as needed.
+    """
+    if args.version:
+        from .version import version
+        print(version)
+        return
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:
@@ -82,14 +113,31 @@ def _main(args: argparse.Namespace):
         return plc(args)
 
 
-def gui(args: argparse.Namespace):
+def gui(args: argparse.Namespace) -> int:
+    """
+    Run the gui application.
+
+    This shows a PLC database diagnostics and allows us to deploy database
+    updates to the PLCs.
+    """
+    # Late import for startup speed
+    from qtpy.QtWidgets import QApplication
+
+    from .gui import PMPSManagerGui
+
     app = QApplication([])
-    gui = PMPSManagerGui(plc_hostnames=args.hostnames)
+    gui = PMPSManagerGui(config=args.config)
     gui.show()
     return app.exec()
 
 
-def plc(args: argparse.Namespace):
+def plc(args: argparse.Namespace) -> None:
+    """
+    Run one or more file operations on a plc.
+    """
+    # Late import for startup speed
+    from .ftp_data import (compare_file, download_file_text, list_file_info,
+                           upload_filename)
     hostname = args.hostname
     if args.download:
         print(download_file_text(hostname=hostname, filename=args.download))
@@ -111,4 +159,3 @@ def plc(args: argparse.Namespace):
             )
         if not infos:
             logger.warning('No files found')
-
