@@ -247,6 +247,7 @@ class SummaryTables(DesignerDisplay, QWidget):
                 datetime.datetime.fromtimestamp(value).ctime()
             )
 
+        param_load_time.setText('no connect')
         self.db_controls[hostname].last_refresh.subscribe(on_refresh)
 
     def update_plc_row(self, row: int):
