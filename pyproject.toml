@@ -21,6 +21,9 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[tool.setuptools_scm]
+write_to = "pmpsdb_client/_version.py"
+
 [project.optional-dependencies]
 gui = ["PyQt5"]
 
