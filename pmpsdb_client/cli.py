@@ -74,8 +74,8 @@ def main(args: argparse.Namespace):
 
 def _main(args: argparse.Namespace):
     if args.version:
-        from .version import __version__
-        print(__version__)
+        from .version import VERSION
+        print(VERSION)
         return
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
