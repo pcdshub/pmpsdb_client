@@ -1,3 +1,11 @@
+"""
+Module to define the EPICS interface to live PLC statuses.
+
+This contains ophyd device definitions that will be useful
+for checking the status or asking for a refresh.
+
+In the future this may be reworked to use PyDM channels.
+"""
 from typing import Any
 
 from ophyd import Component as Cpt

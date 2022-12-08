@@ -1,14 +1,28 @@
+"""
+Module to define the command-line interface for pmpsdb database management.
+
+Once installed, this can be invoked simply by using the ``pmpsdb`` command.
+It can also be run via ``python -m pmpsdb`` from the repository root if you
+have not or cannot install it.
+"""
 import argparse
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
-def entrypoint():
+def entrypoint() -> Optional[int]:
+    """
+    This is the function called when you run ``pmpsdb``
+    """
     return main(create_parser().parse_args())
 
 
 def create_parser() -> argparse.ArgumentParser:
+    """
+    Create the parser used to process command-line input.
+    """
     parser = argparse.ArgumentParser(
         prog='pmpsdb',
         description='PMPS database deployment helpers',
@@ -63,16 +77,28 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(args: argparse.Namespace):
+def main(args: argparse.Namespace) -> Optional[int]:
+    """
+    Given some arguments, run the command-line program.
+
+    This outer function exists only to handle uncaught exceptions.
+    """
     try:
-        _main(args)
+        return _main(args)
     except Exception as exc:
         if args.verbose:
             raise
         print(exc)
+        return 1
 
 
-def _main(args: argparse.Namespace):
+def _main(args: argparse.Namespace) -> Optional[int]:
+    """
+    Given some arguments, run the command-line program.
+
+    This inner function does some setup and then defers to the more specific
+    helper function as needed.
+    """
     if args.version:
         from .version import version
         print(version)
@@ -87,7 +113,13 @@ def _main(args: argparse.Namespace):
         return plc(args)
 
 
-def gui(args: argparse.Namespace):
+def gui(args: argparse.Namespace) -> int:
+    """
+    Run the gui application.
+
+    This shows a PLC database diagnostics and allows us to deploy database
+    updates to the PLCs.
+    """
     # Late import for startup speed
     from qtpy.QtWidgets import QApplication
 
@@ -99,7 +131,10 @@ def gui(args: argparse.Namespace):
     return app.exec()
 
 
-def plc(args: argparse.Namespace):
+def plc(args: argparse.Namespace) -> None:
+    """
+    Run one or more file operations on a plc.
+    """
     # Late import for startup speed
     from .ftp_data import (compare_file, download_file_text, list_file_info,
                            upload_filename)

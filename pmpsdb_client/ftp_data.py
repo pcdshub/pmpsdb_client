@@ -1,3 +1,10 @@
+"""
+Module to define the ftp file transfer interface.
+
+This is how we upload database files to and download database files from the
+PLCs. In order for this to work, the PLC needs to be configured to run its
+FTP server.
+"""
 from __future__ import annotations
 
 import datetime

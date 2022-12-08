@@ -1,3 +1,12 @@
+"""
+Module to define beam class helpers.
+
+This includes:
+- The BeamClass dataclass
+- beamclasses, a list of available beam classes in order
+- summarize_beam_class_bitmask, a function that returns a str table that
+  explains the impact of a specific beam class bitmask.
+"""
 import dataclasses
 from typing import Optional, Union, get_args, get_origin
 
@@ -6,6 +15,20 @@ from prettytable import PrettyTable
 
 @dataclasses.dataclass(frozen=True)
 class BeamClass:
+    """
+    Dataclass that represents one beam class.
+
+    This is a set of limiting parameters on the LCLS2 accelerator.
+    Any omitted parameter means that there is no limit.
+
+    The functional parameters are:
+    - charge_time
+    - pulse_period
+    - charge
+
+    All other parameters are metadata to help understand the impact
+    of those three parameters.
+    """
     index: int
     name: str
     charge_time: Optional[float]
@@ -19,6 +42,9 @@ class BeamClass:
 
     @classmethod
     def from_strs(cls, *args):
+        """
+        Load a beamclass from a list of strings that match the fields.
+        """
         # Coerce the types
         new_args = []
         for value, field in zip(args, dataclasses.fields(cls)):
@@ -78,6 +104,9 @@ for line in table.split('\n'):
 def summarize_beam_class_bitmask(bitmask: int) -> str:
     """
     Creates a nice table summarizing what the bitmask means.
+
+    The bitmask is used by the pmps system to determine which beam
+    classes are permissable for a specific device state.
     """
     table = PrettyTable()
     table.field_names = ['OK'] + header

@@ -1,3 +1,10 @@
+"""
+Module to definte the graphical user interface for pmpsdb.
+
+This is the locally run interface that allows us to communicate
+with both the database and the PLCs, showing useful diagnostic
+information and allowing file transfers.
+"""
 import copy
 import datetime
 import logging
@@ -44,6 +51,18 @@ PARAMETER_HEADER_ORDER = [
 
 
 class PMPSManagerGui(QMainWindow):
+    """
+    The main GUI window for pmpsdb_client.
+
+    This defines the file actions menu and creates the SummaryTables widget.
+
+    Parameters
+    ----------
+    config : str, optional
+        The path to the configuration file. The configuration file is
+        expected to be a yaml mapping from plc name to IOC prefix PV.
+        The configuration file may be expanded in the future.
+    """
     def __init__(self, config: Optional[str]):
         super().__init__()
         if config is None:
@@ -56,6 +75,9 @@ class PMPSManagerGui(QMainWindow):
         self.setup_menu_options()
 
     def setup_menu_options(self):
+        """
+        Create entries and actions in the menu for all configured PLCs.
+        """
         menu = self.menuBar()
         file_menu = menu.addMenu('&File')
         upload_menu = file_menu.addMenu('&Upload to')
@@ -81,7 +103,10 @@ class PMPSManagerGui(QMainWindow):
         reload_menu.triggered.connect(self.reload_params)
         self.setMenuWidget(menu)
 
-    def upload_to(self, action: QAction):
+    def upload_to(self, action: QAction) -> None:
+        """
+        Upload a file from the local filesystem to a plc.
+        """
         hostname = action.text()
         logger.debug('%s upload action', hostname)
         # Show file browser on local host
@@ -105,7 +130,10 @@ class PMPSManagerGui(QMainWindow):
             logger.debug('', exc_info=True)
         self.tables.update_plc_row_by_hostname(hostname)
 
-    def download_from(self, action: QAction):
+    def download_from(self, action: QAction) -> None:
+        """
+        Download a file from a plc to the local filesystem.
+        """
         hostname = action.text()
         logger.debug('%s download action', hostname)
         # Check the available files
@@ -153,7 +181,10 @@ class PMPSManagerGui(QMainWindow):
             logger.error('Error writing file: %s', exc)
             logger.debug('', exc_info=True)
 
-    def reload_params(self, action: QAction):
+    def reload_params(self, action: QAction) -> None:
+        """
+        Command a PLC to reload its PMPS parameters from the database file.
+        """
         hostname = action.text()
         logger.debug('%s reload action', hostname)
         # Confirmation dialog, this is kind of bad to do accidentally
@@ -177,6 +208,16 @@ class PMPSManagerGui(QMainWindow):
 
 
 class SummaryTables(DesignerDisplay, QWidget):
+    """
+    Widget that contains tables of information about deployed PLC databases.
+
+    Parameters
+    ----------
+    plc_config : dict[str, str]
+        The loaded configuration file. The configuration file is
+        expected to be a yaml mapping from plc name to IOC prefix PV.
+        The configuration file may be expanded in the future.
+    """
     filename = Path(__file__).parent / 'tables.ui'
 
     title_label: QLabel
@@ -208,7 +249,10 @@ class SummaryTables(DesignerDisplay, QWidget):
         self.setup_table_columns()
         self.plc_row_map = {}
         self.line = 'l'
+        self._test_mode = False
         for hostname in plc_config:
+            if '-tst-' in hostname:
+                self._test_mode = True
             logger.debug('Adding %s', hostname)
             self.add_plc(hostname)
         self.plc_table.resizeColumnsToContents()
@@ -218,16 +262,16 @@ class SummaryTables(DesignerDisplay, QWidget):
         self.plc_table.cellActivated.connect(self.plc_selected)
         self.device_list.itemActivated.connect(self.device_selected)
 
-    def setup_table_columns(self):
+    def setup_table_columns(self) -> None:
         """
         Set the column headers on the plc and parameter tables.
         """
         self.plc_table.setColumnCount(len(self.plc_columns))
         self.plc_table.setHorizontalHeaderLabels(self.plc_columns)
 
-    def add_plc(self, hostname: str):
+    def add_plc(self, hostname: str) -> None:
         """
-        Add a PLC row in the table on the left.
+        Add a PLC row to the table on the left.
         """
         row = self.plc_table.rowCount()
         self.plc_table.insertRow(row)
@@ -250,7 +294,7 @@ class SummaryTables(DesignerDisplay, QWidget):
         param_load_time.setText('no connect')
         self.db_controls[hostname].last_refresh.subscribe(on_refresh)
 
-    def update_plc_row(self, row: int):
+    def update_plc_row(self, row: int) -> None:
         """
         Update the status information in the PLC table for one row.
 
@@ -280,13 +324,13 @@ class SummaryTables(DesignerDisplay, QWidget):
                 break
         self.plc_table.item(row, 2).setText(text)
 
-    def update_plc_row_by_hostname(self, hostname: str):
+    def update_plc_row_by_hostname(self, hostname: str) -> None:
         """
         Update the status information in the PLC table for one hostname.
         """
         return self.update_plc_row(self.plc_row_map[hostname])
 
-    def fill_device_list(self, hostname: str):
+    def fill_device_list(self, hostname: str) -> None:
         """
         Cache the PLC's saved db and populate the device list.
         """
@@ -321,7 +365,7 @@ class SummaryTables(DesignerDisplay, QWidget):
         for device_name in self.param_dict:
             self.device_list.addItem(device_name)
 
-    def fill_parameter_table(self, device_name: str):
+    def fill_parameter_table(self, device_name: str) -> None:
         """
         Use the cached db to show a single device's parameters in the table.
         """
@@ -388,8 +432,9 @@ class SummaryTables(DesignerDisplay, QWidget):
         """
         Get the PV prefix that corresponds to the device name.
         """
-        # Test PLC PV
-        return 'PLC:TST:MOT:SIM:XPIM:MMS:STATE:'
+        if self._test_mode:
+            # Test PLC PV TODO remove this later
+            return 'PLC:TST:MOT:SIM:XPIM:MMS:STATE:'
         # This probably works?
         return device_name.replace('-', ':') + ':MMS:STATES:'
 
@@ -398,7 +443,7 @@ class SummaryTables(DesignerDisplay, QWidget):
         item: QTableWidgetItem,
         key: str,
         value: str,
-    ):
+    ) -> None:
         """
         Set a tooltip to help out with a single cell in the parameters table.
         """
@@ -417,7 +462,7 @@ class SummaryTables(DesignerDisplay, QWidget):
             return
         item.setToolTip('<pre>' + text + '</pre>')
 
-    def plc_selected(self, row: int, col: int):
+    def plc_selected(self, row: int, col: int) -> None:
         """
         When a plc is selected, reset and seed the device list.
         """
@@ -425,14 +470,17 @@ class SummaryTables(DesignerDisplay, QWidget):
         hostname = self.plc_table.item(row, 0).text()
         self.fill_device_list(hostname)
 
-    def device_selected(self, item: QListWidgetItem):
+    def device_selected(self, item: QListWidgetItem) -> None:
         """
         When a device is selected, reset and seed the parameter list.
         """
         self.fill_parameter_table(item.text())
 
 
-def check_server_online(hostname: str):
+def check_server_online(hostname: str) -> bool:
+    """
+    Ping a hostname to determine if it is network accessible or not.
+    """
     try:
         subprocess.run(
             ['ping', '-c', '1', hostname],
@@ -444,12 +492,18 @@ def check_server_online(hostname: str):
         return False
 
 
-def hostname_to_key(hostname: str):
+def hostname_to_key(hostname: str) -> str:
+    """
+    Given a hostname, get the database key associated with it.
+    """
     if hostname.startswith('plc-'):
         return hostname[4:]
     else:
         return hostname
 
 
-def hostname_to_filename(hostname: str):
+def hostname_to_filename(hostname: str) -> str:
+    """
+    Given a hostname, get the filename associated with it.
+    """
     return hostname_to_key(hostname) + '.json'
