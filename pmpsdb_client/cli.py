@@ -74,14 +74,8 @@ def main(args: argparse.Namespace):
 
 def _main(args: argparse.Namespace):
     if args.version:
-        try:
-            # Installed package
-            from ._version import __version__ as version
-        except ImportError:
-            # Git checkout (late import for startup speed)
-            from setuptools_scm import get_version
-            version = get_version(root="..", relative_to=__file__)
-        print(version)
+        from .version import __version__
+        print(__version__)
         return
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
