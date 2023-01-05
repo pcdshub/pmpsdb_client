@@ -12,7 +12,7 @@ import os
 import os.path
 import subprocess
 from pathlib import Path
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 import yaml
 from pcdscalc.pmps import get_bitmask_desc
@@ -58,17 +58,19 @@ class PMPSManagerGui(QMainWindow):
 
     Parameters
     ----------
-    config : str, optional
-        The path to the configuration file. The configuration file is
+    configs : list of str, optional
+        The path to the configuration files. Configuration files are
         expected to be a yaml mapping from plc name to IOC prefix PV.
         The configuration file may be expanded in the future.
     """
-    def __init__(self, config: Optional[str]):
+    def __init__(self, configs: list[str]):
         super().__init__()
-        if config is None:
-            config = str(Path(__file__).parent / 'pmpsdb_test.yml')
-        with open(config, 'r') as fd:
-            self.plc_config = yaml.full_load(fd)
+        if not configs:
+            configs = [str(Path(__file__).parent / 'pmpsdb_tst.yml')]
+        self.plc_config = {}
+        for config in configs:
+            with open(config, 'r') as fd:
+                self.plc_config.update(yaml.full_load(fd))
         self.plc_hostnames = list(self.plc_config)
         self.tables = SummaryTables(plc_config=self.plc_config)
         self.setCentralWidget(self.tables)
