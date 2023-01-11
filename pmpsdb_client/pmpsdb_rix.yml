@@ -1,5 +1,2 @@
 plc-rixs-optics: "PLC:RIX:OPTICS"
 plc-kfe-rix-motion: "PLC:RIX:MOTION"
-plc-kfe-rix-vac: "PLC:KFE:RIX:VAC"
-plc-crix-vacuum: "PLC:CRIX:VAC"
-plc-crix-motion: "PLC:CRIX:MOT"

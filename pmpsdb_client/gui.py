@@ -255,7 +255,6 @@ class SummaryTables(DesignerDisplay, QWidget):
         for hostname in plc_config:
             if '-tst-' in hostname:
                 self._test_mode = True
-            logger.debug('Adding %s', hostname)
             self.add_plc(hostname)
         self.plc_table.resizeColumnsToContents()
         self.plc_table.setFixedWidth(
@@ -275,6 +274,7 @@ class SummaryTables(DesignerDisplay, QWidget):
         """
         Add a PLC row to the table on the left.
         """
+        logger.debug('add_plc(%s)', hostname)
         row = self.plc_table.rowCount()
         self.plc_table.insertRow(row)
         name_item = QTableWidgetItem(hostname)
@@ -293,7 +293,7 @@ class SummaryTables(DesignerDisplay, QWidget):
                 datetime.datetime.fromtimestamp(value).ctime()
             )
 
-        param_load_time.setText('no connect')
+        param_load_time.setText('No PV connect')
         self.db_controls[hostname].last_refresh.subscribe(on_refresh)
 
     def update_plc_row(self, row: int) -> None:
@@ -305,20 +305,27 @@ class SummaryTables(DesignerDisplay, QWidget):
         Data source from PVs will be updated on monitor outside the scope
         of this method.
         """
+        logger.debug('update_plc_row(%d)', row)
         hostname = self.plc_table.item(row, 0).text()
+        logger.debug('row %d is %s', row, hostname)
         if check_server_online(hostname):
             text = 'online'
         else:
             text = 'offline'
         self.plc_table.item(row, 1).setText(text)
+        info = []
         try:
             info = list_file_info(hostname)
-            logger.debug('%s found file info %s', hostname, info)
-        except Exception:
-            info = []
-            logger.error('Could not read file list from %s', hostname)
+        except Exception as exc:
+            logger.error('Error reading file list from %s: %s', hostname, exc)
             logger.debug('list_file_info(%s) failed', hostname, exc_info=True)
-        text = 'no file found'
+            text = str(exc)
+            if '] ' in text and text.startswith('[Errno'):
+                text = text.split('] ')[1]
+            text = text.capitalize()
+        else:
+            logger.debug('%s found file info %s', hostname, info)
+            text = 'No file found'
         filename = hostname_to_filename(hostname)
         for file_info in info:
             if file_info.filename == filename:

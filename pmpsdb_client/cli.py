@@ -59,14 +59,30 @@ def create_parser() -> argparse.ArgumentParser:
         ),
     )
     gui.add_argument(
-        '--all-prod',
+        '--all-prod', '--all',
         action='store_true',
         help='Load all included non-test PLC configuration files.'
+    )
+    gui.add_argument(
+        '--lfe-all',
+        action='store_true',
+        help=(
+            'Load all lfe-side non-test PLC configuration files. '
+            'This will include the lfe config and any relevant hutch configs.'
+        )
     )
     gui.add_argument(
         '--lfe',
         action='store_true',
         help='Load the included lfe PLCs configuration file.',
+    )
+    gui.add_argument(
+        '--kfe-all',
+        action='store_true',
+        help=(
+            'Load all kfe-side non-test PLC configuration files. '
+            'This will include the kfe config and any relevant hutch configs.'
+        )
     )
     gui.add_argument(
         '--kfe',
@@ -159,16 +175,16 @@ def gui(args: argparse.Namespace) -> int:
 
     from .gui import PMPSManagerGui
 
-    configs = args.config
+    configs = args.config or []
     if args.tst:
         configs.append(get_included_config('tst'))
-    if args.lfe or args.all_prod:
+    if any((args.lfe, args.lfe_all, args.all_prod)):
         configs.append(get_included_config('lfe'))
-    if any((args.kfe, args.tmo, args.rix, args.all_prod)):
+    if any((args.kfe, args.tmo, args.rix, args.kfe_all, args.all_prod)):
         configs.append(get_included_config('kfe'))
-    if args.tmo or args.all_prod:
+    if any((args.tmo, args.kfe_all, args.all_prod)):
         configs.append(get_included_config('tmo'))
-    if args.rix or args.all_prod:
+    if any((args.rix, args.kfe_all, args.all_prod)):
         configs.append(get_included_config('rix'))
     app = QApplication([])
     gui = PMPSManagerGui(configs=configs)
