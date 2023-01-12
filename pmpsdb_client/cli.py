@@ -7,6 +7,7 @@ have not or cannot install it.
 """
 import argparse
 import logging
+from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -44,10 +45,59 @@ def create_parser() -> argparse.ArgumentParser:
     )
     gui.add_argument(
         '--config', '--cfg',
-        default=None,
+        action='append',
         help=(
-            'Configuration file that maps hostnames to IOC PREFIX'
+            'Add a configuration file that maps hostnames to IOC PREFIX.'
         ),
+    )
+    gui.add_argument(
+        '--tst',
+        action='store_true',
+        help=(
+            'Load the included test PLCs configuration file. '
+            'If no configurations are picked, tst is the default.'
+        ),
+    )
+    gui.add_argument(
+        '--all-prod', '--all',
+        action='store_true',
+        help='Load all included non-test PLC configuration files.'
+    )
+    gui.add_argument(
+        '--lfe-all',
+        action='store_true',
+        help=(
+            'Load all lfe-side non-test PLC configuration files. '
+            'This will include the lfe config and any relevant hutch configs.'
+        )
+    )
+    gui.add_argument(
+        '--lfe',
+        action='store_true',
+        help='Load the included lfe PLCs configuration file.',
+    )
+    gui.add_argument(
+        '--kfe-all',
+        action='store_true',
+        help=(
+            'Load all kfe-side non-test PLC configuration files. '
+            'This will include the kfe config and any relevant hutch configs.'
+        )
+    )
+    gui.add_argument(
+        '--kfe',
+        action='store_true',
+        help='Load the included kfe PLCs configuration file.',
+    )
+    gui.add_argument(
+        '--tmo',
+        action='store_true',
+        help='Load the included kfe and tmo PLCs configuration files.',
+    )
+    gui.add_argument(
+        '--rix',
+        action='store_true',
+        help='Load the included kfe and rix PLCs configuration files.',
     )
     plc = subparsers.add_parser(
         'plc',
@@ -125,10 +175,25 @@ def gui(args: argparse.Namespace) -> int:
 
     from .gui import PMPSManagerGui
 
+    configs = args.config or []
+    if args.tst:
+        configs.append(get_included_config('tst'))
+    if any((args.lfe, args.lfe_all, args.all_prod)):
+        configs.append(get_included_config('lfe'))
+    if any((args.kfe, args.tmo, args.rix, args.kfe_all, args.all_prod)):
+        configs.append(get_included_config('kfe'))
+    if any((args.tmo, args.kfe_all, args.all_prod)):
+        configs.append(get_included_config('tmo'))
+    if any((args.rix, args.kfe_all, args.all_prod)):
+        configs.append(get_included_config('rix'))
     app = QApplication([])
-    gui = PMPSManagerGui(config=args.config)
+    gui = PMPSManagerGui(configs=configs)
     gui.show()
     return app.exec()
+
+
+def get_included_config(name: str) -> str:
+    return str(Path(__file__).parent / f'pmpsdb_{name}.yml')
 
 
 def plc(args: argparse.Namespace) -> None:

@@ -1,10 +1,13 @@
 # pmpsdb_client
+
+## Overview
 Client-side application for the PMPS database
 
 This is a cli/gui application and library for managing the deployment and
 inspection of PMPS database files on production PLCs at LCLS.
 It provides tools to make deployment and verification of deployment seamless and easy.
 
+## Usage
 Once installed, this application can be invoked via `pmpsdb`. For example, here is
 the current output of `pmpsdb --help`:
 
@@ -34,3 +37,12 @@ the following from the root directory: `pip install .`, or you can install
 directly from github via:
 `pip install 'pmpsdb_client @ git+https://github.com/pcdshub/pmpsdb_client@v1.0.0'`
 for example, to install version v1.0.0.
+
+## PLC Configuration
+The PLC must have the following configuration:
+
+- ftp enabled, with either the default logins or anonymous uploads enabled
+- firewall TCP ports 20-21 allowed
+
+These are both editable in the CX Configuration Tool.
+Enabling the ftp server will require a PLC restart, updating the firewall will not.

@@ -1,0 +1,3 @@
+plc-tst-motion: "PLC:TST:MOT"
+plc-tst-pmps-subsytem-a: "PLC:TST:PMPS:A"
+plc-tst-pmps-subsytem-b: "PLC:TST:PMPS:B"
