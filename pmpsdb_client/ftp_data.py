@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 DEFAULT_PW = (
     ('Administrator', '1'),
+    ('webguest', '1'),
 )
 DIRECTORY = 'pmps'
 
@@ -56,12 +57,14 @@ def ftp(hostname: str, directory: typing.Optional[str] = None) -> ftplib.FTP:
     rval = None
     for user, pwd in DEFAULT_PW:
         try:
+            logger.debug('Try user=%s', user)
             rval = ftp_obj.login(user=user, passwd=pwd)
         except ftplib.error_perm:
             pass
     # Fallback to anonymous login
     # Try last, might have reduced perms
     if rval is None:
+        logger.debug('Try anonymous login')
         rval = ftp_obj.login()
     if rval is None:
         raise RuntimeError('Could not log into PLC using default passwords.')
