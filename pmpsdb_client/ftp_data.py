@@ -21,6 +21,7 @@ DEFAULT_PW = (
     ('webguest', '1'),
 )
 DIRECTORY = 'pmps'
+DEFAULT_EXPORT_DIR = '/cds/group/pcds/pyps/apps/pmpsdb_server/pmps-db/export'
 
 logger = logging.getLogger(__name__)
 
@@ -219,6 +220,7 @@ def upload_file(
 def upload_filename(
     hostname: str,
     filename: str,
+    dest_filename: typing.Optional[str] = None,
     directory: typing.Optional[str] = None,
 ):
     """
@@ -235,15 +237,16 @@ def upload_filename(
         A default directory pmps is used if this argument is omitted.
     """
     logger.debug(
-        'upload_file(%s, %s, %s)',
+        'upload_file(%s, %s, %s, %s)',
         hostname,
         filename,
+        dest_filename,
         directory,
     )
     with open(filename, 'rb') as fd:
         upload_file(
             hostname=hostname,
-            target_filename=os.path.basename(filename),
+            target_filename=dest_filename or os.path.basename(filename),
             fd=fd,
             directory=directory,
         )

@@ -10,6 +10,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+from .ftp_data import DEFAULT_EXPORT_DIR
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,6 +39,12 @@ def create_parser() -> argparse.ArgumentParser:
         '--verbose', '-v',
         action='store_true',
         help='Show tracebacks and debug statements',
+    )
+    parser.add_argument(
+        '--export-dir', '-e',
+        action='store',
+        default=DEFAULT_EXPORT_DIR,
+        help='The directory that contains database file exports.',
     )
     subparsers = parser.add_subparsers(dest='subparser')
     gui = subparsers.add_parser(
@@ -187,7 +195,7 @@ def gui(args: argparse.Namespace) -> int:
     if any((args.rix, args.kfe_all, args.all_prod)):
         configs.append(get_included_config('rix'))
     app = QApplication([])
-    gui = PMPSManagerGui(configs=configs)
+    gui = PMPSManagerGui(configs=configs, export_dir=args.export_dir)
     gui.show()
     return app.exec()
 

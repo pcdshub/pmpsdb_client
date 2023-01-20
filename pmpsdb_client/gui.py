@@ -23,8 +23,8 @@ from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
                             QWidget)
 
 from .beam_class import summarize_beam_class_bitmask
-from .ftp_data import (download_file_json_dict, download_file_text,
-                       list_file_info, upload_filename)
+from .ftp_data import (DEFAULT_EXPORT_DIR, download_file_json_dict,
+                       download_file_text, list_file_info, upload_filename)
 from .ioc_data import AllStateBP, PLCDBControls
 
 logger = logging.getLogger(__name__)
@@ -62,17 +62,20 @@ class PMPSManagerGui(QMainWindow):
         The path to the configuration files. Configuration files are
         expected to be a yaml mapping from plc name to IOC prefix PV.
         The configuration file may be expanded in the future.
+    expert_dir : str, optional
+        The directory that contains the exported database files.
     """
-    def __init__(self, configs: list[str]):
+    def __init__(self, configs: list[str], export_dir: str = DEFAULT_EXPORT_DIR):
         super().__init__()
         if not configs:
             configs = [str(Path(__file__).parent / 'pmpsdb_tst.yml')]
         self.plc_config = {}
+        self.export_dir = export_dir
         for config in configs:
             with open(config, 'r') as fd:
                 self.plc_config.update(yaml.full_load(fd))
         self.plc_hostnames = list(self.plc_config)
-        self.tables = SummaryTables(plc_config=self.plc_config)
+        self.tables = SummaryTables(plc_config=self.plc_config, export_dir=export_dir)
         self.setCentralWidget(self.tables)
         self.setup_menu_options()
 
@@ -115,17 +118,24 @@ class PMPSManagerGui(QMainWindow):
         filename, _ = QFileDialog.getOpenFileName(
             self,
             'Select file',
-            os.getcwd(),
+            self.export_dir,
             "(*.json)",
         )
         if not filename or not os.path.exists(filename):
             logger.error('%s does not exist, aborting.', filename)
             return
-        logger.debug('Uploading %s to %s', filename, hostname)
+        dest_filename = os.path.basename(filename)
+        if dest_filename.startswith('exported_'):
+            # These filenames need to be truncated
+            # Example: exported_plc-kfe-gatt-2023-01-19T16:22:00.673108.json
+            dest_filename = dest_filename.removeprefix('exported_')
+            dest_filename = dest_filename.split('-20')[0] + '.json'
+        logger.debug('Uploading %s to %s as %s', filename, hostname, dest_filename)
         try:
             upload_filename(
                 hostname=hostname,
                 filename=filename,
+                dest_filename=dest_filename,
             )
         except Exception:
             logger.error('Failed to upload %s to %s', filename, hostname)
@@ -219,6 +229,8 @@ class SummaryTables(DesignerDisplay, QWidget):
         The loaded configuration file. The configuration file is
         expected to be a yaml mapping from plc name to IOC prefix PV.
         The configuration file may be expanded in the future.
+    expert_dir : str
+        The directory that contains the exported database files.
     """
     filename = Path(__file__).parent / 'tables.ui'
 
@@ -242,7 +254,7 @@ class SummaryTables(DesignerDisplay, QWidget):
     plc_row_map: dict[str, int]
     line: str
 
-    def __init__(self, plc_config: dict[str, str]):
+    def __init__(self, plc_config: dict[str, str], export_dir: str):
         super().__init__()
         self.db_controls = {
             name: PLCDBControls(prefix=prefix + ':', name=name)
@@ -505,10 +517,7 @@ def hostname_to_key(hostname: str) -> str:
     """
     Given a hostname, get the database key associated with it.
     """
-    if hostname.startswith('plc-'):
-        return hostname[4:]
-    else:
-        return hostname
+    return hostname
 
 
 def hostname_to_filename(hostname: str) -> str:
