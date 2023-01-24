@@ -422,6 +422,8 @@ class SummaryTables(DesignerDisplay, QWidget):
             header=header,
             params=device_params,
         )
+        self.ioc_table.clear()
+        self.ioc_table.setRowCount(0)
         self.ioc_table.setColumnCount(len(header))
         self.ioc_table.setHorizontalHeaderLabels(header)
         prefix = self.get_states_prefix(device_name)
@@ -429,7 +431,8 @@ class SummaryTables(DesignerDisplay, QWidget):
         try:
             ioc_params = states.get_table_data()
         except TimeoutError:
-            pass
+            logger.error('Did not find values for device %s in ioc', device_name)
+            logger.debug('', exc_info=True)
         else:
             self._fill_params(
                 table=self.ioc_table,
@@ -457,7 +460,7 @@ class SummaryTables(DesignerDisplay, QWidget):
             # Test PLC PV TODO remove this later
             return 'PLC:TST:MOT:SIM:XPIM:MMS:STATE:'
         # This probably works?
-        return device_name.replace('-', ':') + ':MMS:STATES:'
+        return device_name.replace('-', ':') + ':MMS:STATE:'
 
     def set_param_cell_tooltip(
         self,

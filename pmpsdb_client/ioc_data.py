@@ -6,10 +6,13 @@ for checking the status or asking for a refresh.
 
 In the future this may be reworked to use PyDM channels.
 """
+import logging
 from typing import Any
 
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsSignal, EpicsSignalRO
+
+logger = logging.getLogger(__name__)
 
 
 class PLCDBControls(Device):
@@ -127,9 +130,20 @@ class AllStateBP(Device):
         data = {}
         for num in range(1, 16):
             state_bp: StateBeamParameters = getattr(self, f'state_{num:02}')
-            name = state_bp.lookup.get()
+            try:
+                name = state_bp.lookup.get()
+            except Exception:
+                logger.debug(
+                    'Error looking for name in state %d (pv: %s)',
+                    num,
+                    state_bp.lookup.pvname,
+                    exc_info=True,
+                )
+                logger.debug('Skip all subsequent states (to avoid timeout chain)')
+                break
             if name:
-                data[name] = {
+                logger.debug('Found state %d: %s, checking values', num, name)
+                values = {
                     'name': name,
                     'nRate': state_bp.nRate.get(),
                     'nBeamClassRange': clean_bitmask(
@@ -138,6 +152,10 @@ class AllStateBP(Device):
                     'neVRange': clean_bitmask(state_bp.neVRange.get(), 32),
                     'nTran': state_bp.nTran.get(),
                 }
+                logger.debug('Got values %s', values)
+                data[name] = values
+            else:
+                logger.debug('State %d had no name (pv: %s)', num, state_bp.lookup.pvname)
         return data
 
 
