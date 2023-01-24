@@ -68,6 +68,17 @@ class StateBeamParameters(Device):
     For the test IOC the prefix is:
     PLC:TST:MOT:SIM:XPIM:MMS:STATE:
     """
+    ctrl_name = Cpt(
+        EpicsSignalRO,
+        'NAME_RBV',
+        string=True,
+        doc='The short name you select in a control gui.',
+    )
+    ctrl_setpoint = Cpt(
+        EpicsSignalRO,
+        'SETPOINT_RBV',
+        doc='The physical position in a control gui.',
+    )
     loaded = Cpt(
         EpicsSignalRO,
         'PMPS_LOADED_RBV',
@@ -131,20 +142,27 @@ class AllStateBP(Device):
         for num in range(1, 16):
             state_bp: StateBeamParameters = getattr(self, f'state_{num:02}')
             try:
-                name = state_bp.lookup.get()
-            except Exception:
-                logger.debug(
-                    'Error looking for name in state %d (pv: %s)',
-                    num,
-                    state_bp.lookup.pvname,
-                    exc_info=True,
-                )
-                logger.debug('Skip all subsequent states (to avoid timeout chain)')
+                database_name = state_bp.lookup.get()
+            except Exception as exc:
+                self._dc_debug_msg(num, state_bp.lookup.pvname, exc)
                 break
-            if name:
-                logger.debug('Found state %d: %s, checking values', num, name)
+            try:
+                control_name = state_bp.ctrl_name.get()
+            except Exception as exc:
+                self._dc_debug_msg(num, state_bp.ctrl_name.pvname, exc)
+                break
+
+            if database_name or (control_name and control_name != 'Invalid'):
+                logger.debug(
+                    'Found state %d: %s (%s), checking values',
+                    num,
+                    database_name,
+                    control_name,
+                )
                 values = {
-                    'name': name,
+                    'ctrl_name': control_name,
+                    'setpoint': state_bp.ctrl_setpoint.get(),
+                    'name': database_name,
                     'nRate': state_bp.nRate.get(),
                     'nBeamClassRange': clean_bitmask(
                         state_bp.nBeamClassRange.get(), 16,
@@ -153,10 +171,27 @@ class AllStateBP(Device):
                     'nTran': state_bp.nTran.get(),
                 }
                 logger.debug('Got values %s', values)
-                data[name] = values
+                data[database_name] = values
             else:
-                logger.debug('State %d had no name (pv: %s)', num, state_bp.lookup.pvname)
+                logger.debug(
+                    'State %d had no name (pvs: %s, %s)',
+                    num,
+                    state_bp.lookup.pvname,
+                    state_bp.ctrl_name.pvname,
+                )
         return data
+
+    def _dc_debug_msg(self, num: int, pvname: str, exc: Exception) -> None:
+        """
+        Error handling from get_table_data when we can't get the PV
+        """
+        logger.debug(
+            'Error looking for name in state %d (pv: %s)',
+            num,
+            pvname,
+            exc_info=exc,
+        )
+        logger.debug('Skip all subsequent states (to avoid timeout chain)')
 
 
 def clean_bitmask(bitmask: int, width: int) -> str:

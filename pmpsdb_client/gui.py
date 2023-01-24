@@ -422,10 +422,11 @@ class SummaryTables(DesignerDisplay, QWidget):
             header=header,
             params=device_params,
         )
+        ioc_header = ['ctrl_name', 'setpoint'] + header
         self.ioc_table.clear()
         self.ioc_table.setRowCount(0)
-        self.ioc_table.setColumnCount(len(header))
-        self.ioc_table.setHorizontalHeaderLabels(header)
+        self.ioc_table.setColumnCount(len(ioc_header))
+        self.ioc_table.setHorizontalHeaderLabels(ioc_header)
         prefix = self.get_states_prefix(device_name)
         states = AllStateBP(prefix, name='states')
         try:
@@ -436,7 +437,7 @@ class SummaryTables(DesignerDisplay, QWidget):
         else:
             self._fill_params(
                 table=self.ioc_table,
-                header=header,
+                header=ioc_header,
                 params=ioc_params,
             )
 
