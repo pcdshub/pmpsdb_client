@@ -21,7 +21,6 @@ DEFAULT_PW = (
     ('webguest', '1'),
 )
 DIRECTORY = 'pmps'
-DEFAULT_EXPORT_DIR = '/cds/group/pcds/pyps/apps/pmpsdb_server/pmps-db/export'
 
 logger = logging.getLogger(__name__)
 

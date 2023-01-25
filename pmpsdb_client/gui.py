@@ -7,6 +7,7 @@ information and allowing file transfers.
 """
 import copy
 import datetime
+import enum
 import logging
 import os
 import os.path
@@ -23,8 +24,9 @@ from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
                             QWidget)
 
 from .beam_class import summarize_beam_class_bitmask
-from .ftp_data import (DEFAULT_EXPORT_DIR, download_file_json_dict,
-                       download_file_text, list_file_info, upload_filename)
+from .export_data import get_export_dir, get_latest_exported_files
+from .ftp_data import (download_file_json_dict, download_file_text,
+                       list_file_info, upload_filename)
 from .ioc_data import AllStateBP, PLCDBControls
 
 logger = logging.getLogger(__name__)
@@ -65,17 +67,16 @@ class PMPSManagerGui(QMainWindow):
     expert_dir : str, optional
         The directory that contains the exported database files.
     """
-    def __init__(self, configs: list[str], export_dir: str = DEFAULT_EXPORT_DIR):
+    def __init__(self, configs: list[str]):
         super().__init__()
         if not configs:
             configs = [str(Path(__file__).parent / 'pmpsdb_tst.yml')]
         self.plc_config = {}
-        self.export_dir = export_dir
         for config in configs:
             with open(config, 'r') as fd:
                 self.plc_config.update(yaml.full_load(fd))
         self.plc_hostnames = list(self.plc_config)
-        self.tables = SummaryTables(plc_config=self.plc_config, export_dir=export_dir)
+        self.tables = SummaryTables(plc_config=self.plc_config)
         self.setCentralWidget(self.tables)
         self.setup_menu_options()
 
@@ -118,7 +119,7 @@ class PMPSManagerGui(QMainWindow):
         filename, _ = QFileDialog.getOpenFileName(
             self,
             'Select file',
-            self.export_dir,
+            get_export_dir(),
             "(*.json)",
         )
         if not filename or not os.path.exists(filename):
@@ -219,6 +220,17 @@ class PMPSManagerGui(QMainWindow):
             logger.debug('', exc_info=True)
 
 
+class PLCTableColumns(enum.IntEnum):
+    """
+    Column assignments for the PLC table.
+    """
+    NAME = 0
+    STATUS = 1
+    EXPORT = 2
+    UPLOAD = 3
+    RELOAD = 4
+
+
 class SummaryTables(DesignerDisplay, QWidget):
     """
     Widget that contains tables of information about deployed PLC databases.
@@ -244,17 +256,19 @@ class SummaryTables(DesignerDisplay, QWidget):
     ioc_label: QLabel
     ioc_table: QTableWidget
 
-    plc_columns: ClassVar[list[str]] = [
-        'plc name',
-        'status',
-        'file last uploaded',
-        'params last loaded',
-    ]
+    # Human readable colum headers
+    plc_columns: ClassVar[dict[int, str]] = {
+        PLCTableColumns.NAME: 'plc name',
+        PLCTableColumns.STATUS: 'status',
+        PLCTableColumns.EXPORT: 'file last exported',
+        PLCTableColumns.UPLOAD: 'file last uploaded',
+        PLCTableColumns.RELOAD: 'params last loaded',
+    }
     param_dict: dict[str, dict[str, Any]]
     plc_row_map: dict[str, int]
     line: str
 
-    def __init__(self, plc_config: dict[str, str], export_dir: str):
+    def __init__(self, plc_config: dict[str, str]):
         super().__init__()
         self.db_controls = {
             name: PLCDBControls(prefix=prefix + ':', name=name)
@@ -268,6 +282,7 @@ class SummaryTables(DesignerDisplay, QWidget):
             if '-tst-' in hostname:
                 self._test_mode = True
             self.add_plc(hostname)
+        self.update_export_times()
         self.plc_table.resizeColumnsToContents()
         self.plc_table.setFixedWidth(
             self.plc_table.horizontalHeader().length()
@@ -280,7 +295,8 @@ class SummaryTables(DesignerDisplay, QWidget):
         Set the column headers on the plc and parameter tables.
         """
         self.plc_table.setColumnCount(len(self.plc_columns))
-        self.plc_table.setHorizontalHeaderLabels(self.plc_columns)
+        headers = [self.plc_columns[index] for index in sorted(self.plc_columns)]
+        self.plc_table.setHorizontalHeaderLabels(headers)
 
     def add_plc(self, hostname: str) -> None:
         """
@@ -291,13 +307,15 @@ class SummaryTables(DesignerDisplay, QWidget):
         self.plc_table.insertRow(row)
         name_item = QTableWidgetItem(hostname)
         status_item = QTableWidgetItem()
+        export_time_item = QTableWidgetItem()
         upload_time_item = QTableWidgetItem()
         param_load_time = QTableWidgetItem()
-        self.plc_table.setItem(row, 0, name_item)
-        self.plc_table.setItem(row, 1, status_item)
-        self.plc_table.setItem(row, 2, upload_time_item)
-        self.plc_table.setItem(row, 3, param_load_time)
-        self.update_plc_row(row)
+        self.plc_table.setItem(row, PLCTableColumns.NAME, name_item)
+        self.plc_table.setItem(row, PLCTableColumns.STATUS, status_item)
+        self.plc_table.setItem(row, PLCTableColumns.EXPORT, export_time_item)
+        self.plc_table.setItem(row, PLCTableColumns.UPLOAD, upload_time_item)
+        self.plc_table.setItem(row, PLCTableColumns.RELOAD, param_load_time)
+        self.update_plc_row(row, update_export=False)
         self.plc_row_map[hostname] = row
 
         def on_refresh(value, **kwargs):
@@ -308,7 +326,7 @@ class SummaryTables(DesignerDisplay, QWidget):
         param_load_time.setText('No PV connect')
         self.db_controls[hostname].last_refresh.subscribe(on_refresh)
 
-    def update_plc_row(self, row: int) -> None:
+    def update_plc_row(self, row: int, update_export: bool = True) -> None:
         """
         Update the status information in the PLC table for one row.
 
@@ -318,13 +336,13 @@ class SummaryTables(DesignerDisplay, QWidget):
         of this method.
         """
         logger.debug('update_plc_row(%d)', row)
-        hostname = self.plc_table.item(row, 0).text()
+        hostname = self.plc_table.item(row, PLCTableColumns.NAME).text()
         logger.debug('row %d is %s', row, hostname)
         if check_server_online(hostname):
             text = 'online'
         else:
             text = 'offline'
-        self.plc_table.item(row, 1).setText(text)
+        self.plc_table.item(row, PLCTableColumns.STATUS).setText(text)
         info = []
         try:
             info = list_file_info(hostname)
@@ -337,19 +355,36 @@ class SummaryTables(DesignerDisplay, QWidget):
             text = text.capitalize()
         else:
             logger.debug('%s found file info %s', hostname, info)
-            text = 'No file found'
+            text = 'No upload found'
         filename = hostname_to_filename(hostname)
         for file_info in info:
             if file_info.filename == filename:
                 text = file_info.create_time.ctime()
                 break
-        self.plc_table.item(row, 2).setText(text)
+        self.plc_table.item(row, PLCTableColumns.UPLOAD).setText(text)
+        if update_export:
+            self.update_export_times()
 
     def update_plc_row_by_hostname(self, hostname: str) -> None:
         """
         Update the status information in the PLC table for one hostname.
         """
         return self.update_plc_row(self.plc_row_map[hostname])
+
+    def update_export_times(self) -> None:
+        """
+        For all table rows, update the timestamp of the latest export file.
+        """
+        latest_exports = get_latest_exported_files()
+        for row in range(self.plc_table.rowCount()):
+            plc_name = self.plc_table.item(row, PLCTableColumns.NAME).text()
+            export_item = self.plc_table.item(row, PLCTableColumns.EXPORT)
+            try:
+                plc_export = latest_exports[plc_name]
+            except KeyError:
+                export_item.setText('No exports found')
+            else:
+                export_item.setText(plc_export.export_time.ctime())
 
     def fill_device_list(self, hostname: str) -> None:
         """
