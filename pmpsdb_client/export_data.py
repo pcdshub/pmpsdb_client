@@ -56,6 +56,9 @@ class ExportFile:
             full_path=os.path.join(get_export_dir(), filename),
         )
 
+    def get_plc_filename(self) -> str:
+        return f'{self.plc_name}.json'
+
 
 def get_exported_files() -> list[ExportFile]:
     all_filenames = os.listdir(get_export_dir())

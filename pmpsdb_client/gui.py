@@ -24,7 +24,7 @@ from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
                             QWidget)
 
 from .beam_class import summarize_beam_class_bitmask
-from .export_data import get_export_dir, get_latest_exported_files
+from .export_data import ExportFile, get_export_dir, get_latest_exported_files
 from .ftp_data import (download_file_json_dict, download_file_text,
                        list_file_info, upload_filename)
 from .ioc_data import AllStateBP, PLCDBControls
@@ -86,12 +86,16 @@ class PMPSManagerGui(QMainWindow):
         """
         menu = self.menuBar()
         file_menu = menu.addMenu('&File')
+        upload_latest_menu = file_menu.addMenu('Upload &Latest to')
         upload_menu = file_menu.addMenu('&Upload to')
         download_menu = file_menu.addMenu('&Download from')
         reload_menu = file_menu.addMenu('&Reload Params')
         # Actions will be garbage collected if we drop this reference
         self.actions = []
         for plc in self.plc_hostnames:
+            upload_latest_action = QAction()
+            upload_latest_action.setText(plc)
+            upload_latest_menu.addAction(upload_latest_action)
             upload_action = QAction()
             upload_action.setText(plc)
             upload_menu.addAction(upload_action)
@@ -101,13 +105,49 @@ class PMPSManagerGui(QMainWindow):
             reload_action = QAction(plc)
             reload_action.setText(plc)
             reload_menu.addAction(reload_action)
+            self.actions.append(upload_latest_action)
             self.actions.append(upload_action)
             self.actions.append(download_action)
             self.actions.append(reload_action)
+        upload_latest_menu.triggered.connect(self.upload_latest)
         upload_menu.triggered.connect(self.upload_to)
         download_menu.triggered.connect(self.download_from)
         reload_menu.triggered.connect(self.reload_params)
         self.setMenuWidget(menu)
+
+    def upload_latest(self, action: QAction) -> None:
+        """
+        Upload the latest database export to a plc.
+        """
+        hostname = action.text()
+
+        reply = QMessageBox.question(
+            self,
+            'Confirm upload',
+            (
+                f'Are you sure you want to upload the latest parameters to {hostname}? '
+                'Note that this will affect ongoing experiments on next reload.'
+            ),
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        latest_exports = get_latest_exported_files()
+        try:
+            this_plc_latest = latest_exports[hostname]
+        except KeyError:
+            logger.error('No exports found for plc %s', hostname)
+            return
+        try:
+            upload_filename(
+                hostname=hostname,
+                filename=this_plc_latest.full_path,
+                dest_filename=this_plc_latest.get_plc_filename(),
+            )
+        except Exception:
+            logger.error('Failed to upload %s to %s', this_plc_latest.filename, hostname)
+            logger.debug('', exc_info=True)
+        self.tables.update_plc_row_by_hostname(hostname)
 
     def upload_to(self, action: QAction) -> None:
         """
@@ -125,12 +165,26 @@ class PMPSManagerGui(QMainWindow):
         if not filename or not os.path.exists(filename):
             logger.error('%s does not exist, aborting.', filename)
             return
-        dest_filename = os.path.basename(filename)
-        if dest_filename.startswith('exported_'):
-            # These filenames need to be truncated
-            # Example: exported_plc-kfe-gatt-2023-01-19T16:22:00.673108.json
-            dest_filename = dest_filename.removeprefix('exported_')
-            dest_filename = dest_filename.split('-20')[0] + '.json'
+
+        reply = QMessageBox.question(
+            self,
+            'Confirm upload',
+            (
+                f'Are you sure you want to upload {os.path.basename(filename)} to {hostname}? '
+                'Note that this will affect ongoing experiments on next reload.'
+            ),
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        try:
+            exported_file = ExportFile.from_filename(filename=os.path.basename(filename))
+        except ValueError:
+            # Does not match the exported file regex
+            dest_filename = os.path.basename(filename)
+        else:
+            dest_filename = exported_file.get_plc_filename()
+
         logger.debug('Uploading %s to %s as %s', filename, hostname, dest_filename)
         try:
             upload_filename(
