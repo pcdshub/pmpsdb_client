@@ -422,11 +422,10 @@ class SummaryTables(DesignerDisplay, QWidget):
             header=header,
             params=device_params,
         )
-        ioc_header = ['ctrl_name', 'setpoint'] + header
+
         self.ioc_table.clear()
         self.ioc_table.setRowCount(0)
-        self.ioc_table.setColumnCount(len(ioc_header))
-        self.ioc_table.setHorizontalHeaderLabels(ioc_header)
+
         prefix = self.get_states_prefix(device_name)
         states = AllStateBP(prefix, name='states')
         try:
@@ -434,12 +433,17 @@ class SummaryTables(DesignerDisplay, QWidget):
         except TimeoutError:
             logger.error('Did not find values for device %s in ioc', device_name)
             logger.debug('', exc_info=True)
-        else:
-            self._fill_params(
-                table=self.ioc_table,
-                header=ioc_header,
-                params=ioc_params,
-            )
+            return
+
+        ioc_header = list(list(ioc_params.values())[0])
+        self.ioc_table.setColumnCount(len(ioc_header))
+        self.ioc_table.setHorizontalHeaderLabels(ioc_header)
+
+        self._fill_params(
+            table=self.ioc_table,
+            header=ioc_header,
+            params=ioc_params,
+        )
 
     def _fill_params(self, table, header, params) -> None:
         for state_info in params.values():

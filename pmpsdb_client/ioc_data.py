@@ -38,31 +38,156 @@ class PLCDBControls(Device):
     )
 
 
-class StateBeamParameters(Device):
+class ApertureSize(Device):
     """
-    The beam parameters associated with one state position.
+    A subelement of ST_BeamParams that represents one ST_PMPS_Aperture.
+
+    OK_RBV is omitted because it is not used for beam parameter sets.
+    It is a communication field for live data from the Arbiter.
+    """
+    width = Cpt(
+        EpicsSignalRO,
+        'Width_RBV',
+        doc='The horizontal aperture opening size.',
+    )
+    height = Cpt(
+        EpicsSignalRO,
+        'Height_RBV',
+        doc='The vertical aperture opening size.',
+    )
+
+
+class BeamParameters(Device):
+    """
+    A set of beam parameters as sent to the arbiter.
 
     This represents the elements from ST_BeamParams that match up with
-    database parameters.
+    database parameters. Elements that are used only for Arbiter readbacks
+    are omitted.
 
-    The following PVs currently exist when reading ST_BeamParams:
-    - BP:Veto_RBV
-    - BP:BeamClassRanges_RBV
-    - BP:BeamClass_RBV
-    - BP:Cohort_RBV
-    - BP:Rate_RBV
-    - BP:Transmission_RBV
-    - BP:PhotonEnergy_RBV
-    - BP:PhotonEnergyRanges_RBV
-    - BP:Valid_RBV
+    The attribute names here are the database column headers where applicable.
 
-    The attribute names here are the database column headers.
-    Note that there are not currently any aperature/damage limit/notes PVs.
+    The following PVs/subelements are included:
+    - Rate_RBV
+    - BeamClassRanges_RBV
+    - PhotonEnergyRanges_RBV
+    - Transmission_RBV
+    - Apertures:01, 02, 03, 04
+    """
+    nRate = Cpt(
+        EpicsSignalRO,
+        'Rate_RBV',
+        doc='Rate limit with NC beam.',
+    )
+    nBeamClassRange = Cpt(
+        EpicsSignalRO,
+        'BeamClassRanges_RBV',
+        doc='Acceptable beam parameters with SC Beam.',
+    )
+    neVRange = Cpt(
+        EpicsSignalRO,
+        'PhotonEnergyRanges_RBV',
+        doc='Acceptable photon energies.',
+    )
+    nTran = Cpt(
+        EpicsSignalRO,
+        'Transmission_RBV',
+        doc='Gas attenuator transmission limit.',
+    )
+    aperture1 = Cpt(
+        ApertureSize,
+        'Apertures:01:',
+        doc='Opening setting of aperture 1',
+    )
+    aperture2 = Cpt(
+        ApertureSize,
+        'Apertures:02:',
+        doc='Opening setting of aperture 2',
+    )
+    aperture3 = Cpt(
+        ApertureSize,
+        'Apertures:03:',
+        doc='Opening setting of aperture 3',
+    )
+    aperture4 = Cpt(
+        ApertureSize,
+        'Apertures:04:',
+        doc='Opening setting of aperture 4',
+    )
 
-    We'll also add the best match for name and a "loaded" check.
+    def get_table_data(self) -> dict[str, Any]:
+        """
+        Return a mapping from table key to value.
+
+        This is similar to self.get() but with some cleanup applied
+        to the bitmasks to change them from int to str.
+        """
+        return {
+            'nRate': self.nRate.get(),
+            'nBeamClassRange': clean_bitmask(self.nBeamClassRange.get(), 15),
+            'neVRange': clean_bitmask(self.neVRange.get(), 32),
+            'nTran': self.nTran.get(),
+            'aperture1_width': self.aperture1.width.get(),
+            'aperture1_height': self.aperture1.height.get(),
+            'aperture2_width': self.aperture2.width.get(),
+            'aperture2_height': self.aperture2.height.get(),
+            'aperture3_width': self.aperture3.width.get(),
+            'aperture3_height': self.aperture3.height.get(),
+            'aperture4_width': self.aperture4.width.get(),
+            'aperture4_height': self.aperture4.height.get(),
+        }
+
+
+class DatabaseBeamParameters(Device):
+    """
+    The beam parameters database struct, ST_DbStateParams.
+
+    This includes the database parameters and some auxiliary fields from the database load.
+    The attribute names here are the database column headers where applicable/possible.
+    """
+    loaded = Cpt(
+        EpicsSignalRO,
+        'PMPS_LOADED_RBV',
+        doc='True if the DB has been loaded for this state.',
+    )
+    db_name = Cpt(
+        EpicsSignalRO,
+        'PMPS_STATE_RBV',
+        string=True,
+        doc='Lookup key for this state.',
+    )
+    db_id = Cpt(
+        EpicsSignalRO,
+        'PMPS_ID_RBV',
+        doc='Database and assertion id for this state.',
+    )
+    beam_parameters = Cpt(
+        BeamParameters,
+        'BP:',
+        doc='The beam parameter set as sent to the arbiter PLC.',
+    )
+
+    def get_table_data(self) -> dict[str, Any]:
+        """
+        Return a mapping from table key to value.
+        """
+        data = {
+            'loaded': 'True' if self.loaded.get() else 'False',
+            'db_name': self.db_name.get(),
+            'db_id': self.db_id.get(),
+        }
+        data.update(self.beam_parameters.get_table_data())
+        return data
+
+
+class StateBeamParameters(Device):
+    """
+    One state position, which includes position settings and beam parameters.
+
+    The attribute names here are the database column headers where applicable/possible.
 
     For a normal IOC the prefix will be something like:
-    IM1L0:XTES:MMS:STATE:
+    IM1L0:XTES:MMS:STATE:01:
     Which should be systematic to some extent.
 
     For the test IOC the prefix is:
@@ -79,42 +204,30 @@ class StateBeamParameters(Device):
         'SETPOINT_RBV',
         doc='The physical position in a control gui.',
     )
-    loaded = Cpt(
-        EpicsSignalRO,
-        'PMPS_LOADED_RBV',
-        doc='True if the DB has been loaded for this state.',
+    database = Cpt(
+        DatabaseBeamParameters,
+        '',
+        doc='The database entry associated with this device.'
     )
-    lookup = Cpt(
-        EpicsSignalRO,
-        'PMPS_STATE_RBV',
-        string=True,
-        doc='Lookup key for this state.',
-    )
-    nRate = Cpt(
-        EpicsSignalRO,
-        'BP:Rate_RBV',
-        doc='Rate limit with NC beam.',
-    )
-    nBeamClassRange = Cpt(
-        EpicsSignalRO,
-        'BP:BeamClassRanges_RBV',
-        doc='Acceptable beam parameters with SC Beam.',
-    )
-    neVRange = Cpt(
-        EpicsSignalRO,
-        'BP:PhotonEnergyRanges_RBV',
-        doc='Acceptable photon energies.',
-    )
-    nTran = Cpt(
-        EpicsSignalRO,
-        'BP:Transmission_RBV',
-        doc='Gas attenuator transmission limit.',
-    )
+
+    def get_table_data(self) -> dict[str, Any]:
+        """
+        Return a mapping from table key to value.
+        """
+        data = {
+            'ctrl_name': self.ctrl_name.get(),
+            'ctrl_setpoint': self.ctrl_setpoint.get(),
+        }
+        data.update(self.database.get_table_data())
+        return data
 
 
 class AllStateBP(Device):
     """
     All possible beam parameters for a state device.
+
+    For a normal IOC the prefix will be something like:
+    IM1L0:XTES:MMS:STATE:
     """
     state_01 = Cpt(StateBeamParameters, '01:')
     state_02 = Cpt(StateBeamParameters, '02:')
@@ -131,6 +244,7 @@ class AllStateBP(Device):
     state_13 = Cpt(StateBeamParameters, '13:')
     state_14 = Cpt(StateBeamParameters, '14:')
     state_15 = Cpt(StateBeamParameters, '15:')
+    transition = Cpt(DatabaseBeamParameters, 'PMPS:TRANS:')
 
     def get_table_data(self) -> dict[str, dict[str, Any]]:
         """
@@ -142,56 +256,27 @@ class AllStateBP(Device):
         for num in range(1, 16):
             state_bp: StateBeamParameters = getattr(self, f'state_{num:02}')
             try:
-                database_name = state_bp.lookup.get()
-            except Exception as exc:
-                self._dc_debug_msg(num, state_bp.lookup.pvname, exc)
+                state_data = state_bp.get_table_data()
+            except Exception:
+                # Some connection error, probably
+                logger.debug('Error getting state parameters', exc_info=True)
+                logger.debug('Skip all subsequent states (to avoid timeout chain)')
                 break
-            try:
-                control_name = state_bp.ctrl_name.get()
-            except Exception as exc:
-                self._dc_debug_msg(num, state_bp.ctrl_name.pvname, exc)
-                break
+            database_name = state_data['db_name']
+            control_name = state_data['ctrl_name']
 
             if database_name or (control_name and control_name != 'Invalid'):
-                logger.debug(
-                    'Found state %d: %s (%s), checking values',
-                    num,
-                    database_name,
-                    control_name,
-                )
-                values = {
-                    'ctrl_name': control_name,
-                    'setpoint': state_bp.ctrl_setpoint.get(),
-                    'name': database_name,
-                    'nRate': state_bp.nRate.get(),
-                    'nBeamClassRange': clean_bitmask(
-                        state_bp.nBeamClassRange.get(), 16,
-                    ),
-                    'neVRange': clean_bitmask(state_bp.neVRange.get(), 32),
-                    'nTran': state_bp.nTran.get(),
-                }
-                logger.debug('Got values %s', values)
-                data[database_name] = values
+                data[database_name] = state_data
             else:
                 logger.debug(
                     'State %d had no name (pvs: %s, %s)',
                     num,
-                    state_bp.lookup.pvname,
+                    state_bp.database.db_name.pvname,
                     state_bp.ctrl_name.pvname,
                 )
+        trans_data = self.transition.get_table_data()
+        data[trans_data['db_name']] = trans_data
         return data
-
-    def _dc_debug_msg(self, num: int, pvname: str, exc: Exception) -> None:
-        """
-        Error handling from get_table_data when we can't get the PV
-        """
-        logger.debug(
-            'Error looking for name in state %d (pv: %s)',
-            num,
-            pvname,
-            exc_info=exc,
-        )
-        logger.debug('Skip all subsequent states (to avoid timeout chain)')
 
 
 def clean_bitmask(bitmask: int, width: int) -> str:
