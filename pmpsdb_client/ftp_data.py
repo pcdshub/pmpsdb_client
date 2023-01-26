@@ -356,7 +356,8 @@ def local_file_json_dict(filename: str) -> dict[str, dict[str, typing.Any]]:
 
 def compare_file(
     hostname: str,
-    filename: str,
+    local_filename: str,
+    plc_filename: typing.Optional[str] = None,
     directory: typing.Optional[str] = None,
 ) -> bool:
     """
@@ -366,8 +367,11 @@ def compare_file(
     ----------
     hostname : str
         The plc hostname to download from.
-    filename : str
-        The name of the file on the PLC and on the local drive.
+    local_filename: str
+        The full path the local file to compare with.
+    plc_filename: str, optional
+        The filename as saved on the PLC. If omitted, the local_filename's
+        basename will be used.
     directory : str, optional
         The ftp subdirectory to read and write from
         A default directory pmps is used if this argument is omitted.
@@ -378,15 +382,16 @@ def compare_file(
         True if the contents of these two files are the same.
     """
     logger.debug(
-        'compare_file(%s, %s, %s)',
+        'compare_file(%s, %s, %s, %s)',
         hostname,
-        filename,
+        local_filename,
+        plc_filename,
         directory,
     )
-    local_data = local_file_json_dict(filename=filename)
+    local_data = local_file_json_dict(filename=local_filename)
     plc_data = download_file_json_dict(
         hostname=hostname,
-        filename=filename,
+        filename=plc_filename,
         directory=directory,
     )
     return local_data == plc_data
