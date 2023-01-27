@@ -90,7 +90,6 @@ def create_parser() -> argparse.ArgumentParser:
 
     list_files = subparsers.add_parser(
         'list-files',
-        aliases=['list'],
         help='Show all files uploaded to a PLC.',
     )
     list_files.add_argument(
@@ -100,7 +99,6 @@ def create_parser() -> argparse.ArgumentParser:
 
     upload = subparsers.add_parser(
         'upload-to',
-        aliases=['upload'],
         help='Upload a database export file to a PLC.'
     )
     upload.add_argument(
@@ -126,7 +124,6 @@ def create_parser() -> argparse.ArgumentParser:
 
     download = subparsers.add_parser(
         'download-from',
-        aliases=['download'],
         help='Download a database file previously exported to a PLC.'
     )
     download.add_argument(
@@ -181,7 +178,8 @@ def create_parser() -> argparse.ArgumentParser:
         help='PLC hostname to reload parameters for.'
     )
     reload.add_argument(
-        'no-wait',
+        '--no-wait',
+        action='store_true',
         help='Do not wait for confirmation',
     )
 

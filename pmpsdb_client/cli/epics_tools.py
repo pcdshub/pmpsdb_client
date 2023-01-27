@@ -20,7 +20,7 @@ def cli_reload_parameters(args: argparse.Namespace) -> int:
     hostname = args.hostname
     configs = load_all_configs()
     try:
-        prefix = configs[hostname]
+        prefix = configs[hostname] + ':'
     except KeyError:
         logger.error('No entry for %s in config', hostname)
         return 1
@@ -34,20 +34,23 @@ def cli_reload_parameters(args: argparse.Namespace) -> int:
             controls.last_refresh.pvname,
         )
         return 1
+    last_refresh = controls.last_refresh.get()
     logger.info(
-        'Last file reload was at: %s',
-        time.ctime(controls.last_refresh.get())
+        'Last file reloaded at: %s',
+        time.ctime(last_refresh)
     )
 
     if not args.no_wait:
         ev = threading.Event()
 
-        def set_flag(*args, **kwargs):
-            ev.set()
+        def set_flag(*args, value, **kwargs):
+            if value != last_refresh:
+                ev.set()
 
         controls.last_refresh.subscribe(set_flag)
 
     try:
+        logger.info('Refreshing...')
         controls.refresh.put(1)
     except Exception:
         logger.error(
@@ -78,9 +81,9 @@ def load_all_configs() -> dict[str, str]:
     Check all the built-in configs to gather all of the PV prefixes.
     """
     configs = {}
-    root_dir = Path(__file__).parent.parent
-    for filename in root_dir.iterdir():
-        if CONFIG_RE.match(filename) is not None:
-            with open(filename) as fd:
-                configs.update(yaml.load(fd))
+    root_path = Path(__file__).parent.parent
+    for path in root_path.iterdir():
+        if CONFIG_RE.match(path.name) is not None:
+            with path.open() as fd:
+                configs.update(yaml.full_load(fd))
     return configs

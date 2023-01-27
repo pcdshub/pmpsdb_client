@@ -15,7 +15,10 @@ logger = logging.getLogger(__name__)
 
 def cli_list_files(args: argparse.Namespace) -> int:
     """Show all files uploaded to a PLC."""
-    hostname = args.hostname
+    return _list_files(hostname=args.hostname)
+
+
+def _list_files(hostname: str) -> int:
     infos = list_file_info(hostname=hostname)
     for data in infos:
         print(
@@ -61,12 +64,14 @@ def _upload_file(
         local_file=local_file,
         plc_filename=plc_filename,
     )
+    logger.info('Uploading %s to %s as %s', local_file, hostname, plc_filename)
     upload_filename(
         hostname=hostname,
         filename=local_file,
         dest_filename=plc_filename,
     )
-    return 0
+    logger.info('Checking PLC files')
+    return _list_files(hostname=hostname)
 
 
 def cli_download_file(args: argparse.Namespace) -> int:
