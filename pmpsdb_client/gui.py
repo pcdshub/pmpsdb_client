@@ -515,14 +515,16 @@ class SummaryTables(DesignerDisplay, QWidget):
         self.ioc_table.clear()
         self.ioc_table.setRowCount(0)
 
-        prefix = self.get_states_prefix(device_name)
-        states = AllStateBP(prefix, name='states')
-        try:
-            ioc_params = states.get_table_data()
-        except TimeoutError:
-            logger.error('Did not find values for device %s in ioc', device_name)
-            logger.debug('', exc_info=True)
-            return
+        prefixes = self.get_states_prefixes(device_name)
+        all_states = [AllStateBP(prefix, name=prefix) for prefix in prefixes]
+        ioc_params = {}
+        for states in all_states:
+            try:
+                ioc_params.update(states.get_table_data())
+            except TimeoutError:
+                logger.error('Did not find values for device %s in ioc', device_name)
+                logger.debug('', exc_info=True)
+                return
 
         ioc_header = list(list(ioc_params.values())[0])
         self.ioc_table.setColumnCount(len(ioc_header))
@@ -546,15 +548,19 @@ class SummaryTables(DesignerDisplay, QWidget):
                 table.setItem(row, col, item)
         table.resizeColumnsToContents()
 
-    def get_states_prefix(self, device_name: str) -> str:
+    def get_states_prefixes(self, device_name: str) -> list[str]:
         """
-        Get the PV prefix that corresponds to the device name.
+        Get the PV prefixes that corresponds to the device name.
         """
-        if self._test_mode:
-            # Test PLC PV TODO remove this later
-            return 'PLC:TST:MOT:SIM:XPIM:MMS:STATE:'
-        # This probably works?
-        return device_name.replace('-', ':') + ':MMS:STATE:'
+        if 'GAS_MAA' in device_name:
+            # Gas attenuator apertures
+            return [
+                device_name.replace('-', ':') + ':Y:STATE:',
+                device_name.replace('-', ':') + ':X:STATE:'
+            ]
+        else:
+            # PPM, XPIM, WFS, others?
+            return [device_name.replace('-', ':') + ':MMS:STATE:']
 
     def set_param_cell_tooltip(
         self,
