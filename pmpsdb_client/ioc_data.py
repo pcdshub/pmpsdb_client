@@ -86,7 +86,7 @@ class BeamParameters(Device):
     )
     neVRange = Cpt(
         EpicsSignalRO,
-        'PhotonEnergyRanges_RBV',
+        'eVRanges_RBV',
         doc='Acceptable photon energies.',
     )
     nTran = Cpt(
@@ -96,22 +96,22 @@ class BeamParameters(Device):
     )
     aperture1 = Cpt(
         ApertureSize,
-        'Apertures:01:',
+        'Apt:01:',
         doc='Opening setting of aperture 1',
     )
     aperture2 = Cpt(
         ApertureSize,
-        'Apertures:02:',
+        'Apt:02:',
         doc='Opening setting of aperture 2',
     )
     aperture3 = Cpt(
         ApertureSize,
-        'Apertures:03:',
+        'Apt:03:',
         doc='Opening setting of aperture 3',
     )
     aperture4 = Cpt(
         ApertureSize,
-        'Apertures:04:',
+        'Apt:04:',
         doc='Opening setting of aperture 4',
     )
 
