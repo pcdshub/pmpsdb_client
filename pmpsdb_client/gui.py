@@ -478,6 +478,7 @@ class SummaryTables(DesignerDisplay, QWidget):
         """
         self.param_table.clear()
         self.param_table.setRowCount(0)
+        self.param_table.setColumnCount(0)
         prefix = device_name.lower().split('-')[0]
         # Find the last letter in prefix
         for char in reversed(prefix):
@@ -511,6 +512,7 @@ class SummaryTables(DesignerDisplay, QWidget):
 
         self.ioc_table.clear()
         self.ioc_table.setRowCount(0)
+        self.ioc_table.setColumnCount(0)
 
         prefixes = self.get_states_prefixes(device_name)
         all_states = [AllStateBP(prefix, name=prefix) for prefix in prefixes]
@@ -585,11 +587,17 @@ class SummaryTables(DesignerDisplay, QWidget):
 
     def plc_selected(self, row: int, col: int) -> None:
         """
-        When a plc is selected, reset and seed the device list.
+        When a plc is selected, reset ioc/param tables and seed the device list.
         """
         self.update_plc_row(row)
         hostname = self.plc_table.item(row, 0).text()
         self.fill_device_list(hostname)
+        self.param_table.clear()
+        self.param_table.setRowCount(0)
+        self.param_table.setColumnCount(0)
+        self.ioc_table.clear()
+        self.ioc_table.setRowCount(0)
+        self.ioc_table.setColumnCount(0)
 
     def device_selected(self, item: QListWidgetItem) -> None:
         """
