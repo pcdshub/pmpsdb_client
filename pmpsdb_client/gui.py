@@ -338,9 +338,6 @@ class SummaryTables(DesignerDisplay, QWidget):
             self.add_plc(hostname)
         self.update_export_times()
         self.plc_table.resizeColumnsToContents()
-        self.plc_table.setFixedWidth(
-            self.plc_table.horizontalHeader().length()
-        )
         self.plc_table.cellActivated.connect(self.plc_selected)
         self.device_list.itemActivated.connect(self.device_selected)
 
