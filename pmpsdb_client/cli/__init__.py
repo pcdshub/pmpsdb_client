@@ -49,7 +49,10 @@ def _main(args: argparse.Namespace) -> int:
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(levelname)s: %(message)s',
+        )
     if args.export_dir:
         from ..export_data import set_export_dir
         set_export_dir(args.export_dir)
