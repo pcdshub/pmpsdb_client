@@ -374,8 +374,9 @@ class SummaryTables(DesignerDisplay, QWidget):
                 datetime.datetime.fromtimestamp(value).ctime()
             )
 
-        param_load_time.setText('No PV connect')
-        self.db_controls[hostname].last_refresh.subscribe(on_refresh)
+        last_refresh_signal = self.db_controls[hostname].last_refresh
+        param_load_time.setText(f'No connect: {last_refresh_signal.pvname}')
+        last_refresh_signal.subscribe(on_refresh)
 
     def update_plc_row(self, row: int, update_export: bool = True) -> None:
         """
