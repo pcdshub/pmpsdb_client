@@ -520,9 +520,14 @@ class SummaryTables(DesignerDisplay, QWidget):
         for states in all_states:
             try:
                 ioc_params.update(states.get_table_data())
-            except TimeoutError:
+            except TimeoutError as exc:
                 logger.error('Did not find values for device %s in ioc', device_name)
                 logger.debug('', exc_info=True)
+                # Get an example PV that didn't connect for the table
+                self.ioc_table.setColumnCount(1)
+                self.ioc_table.setRowCount(1)
+                self.ioc_table.setHorizontalHeaderLabels([''])
+                self.ioc_table.setItem(0, 0, QTableWidgetItem(str(exc)))
                 return
 
         ioc_header = list(list(ioc_params.values())[0])
