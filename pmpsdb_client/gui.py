@@ -632,12 +632,27 @@ class StatusBarHandler(logging.Handler):
     """
     Logging handler for sending log messages to a QStatusBar.
     """
+    colors = {
+        logging.CRITICAL: "crimson",
+        logging.ERROR: "darkred",
+        logging.WARNING: "darkorange",
+        logging.INFO: "black",
+        logging.DEBUG: "darkgreen",
+    }
+
     def __init__(self, status_bar: QStatusBar, level: int = logging.NOTSET) -> None:
         super().__init__(level=level)
         self.status_bar = status_bar
+        self.label = None
 
     def emit(self, record: logging.LogRecord):
-        self.status_bar.showMessage(self.format(record))
+        if self.label is not None:
+            self.status_bar.removeWidget(self.label)
+        self.label = QLabel(self.format(record))
+        self.label.setStyleSheet(
+            f"QLabel {{ color: {self.colors.get(record.levelno, 'black')} }}"
+        )
+        self.status_bar.addWidget(self.label)
 
 
 def check_server_online(hostname: str) -> bool:
