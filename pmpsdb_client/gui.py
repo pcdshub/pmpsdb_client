@@ -80,6 +80,7 @@ class PMPSManagerGui(QMainWindow):
         self.setCentralWidget(self.tables)
         self.setup_menu_options()
         self.setup_status_bar()
+        logger.info('pmpsdb client gui loaded')
 
     def setup_menu_options(self):
         """
@@ -120,8 +121,10 @@ class PMPSManagerGui(QMainWindow):
         """
         Set up the status bar to show log messages INFO and higher.
         """
-        handler = StatusBarHandler(self.statusBar())
-        formatter = logging.Formatter('%(levelname)s: %(message)s')
+        status_bar = self.statusBar()
+        status_bar.setContentsMargins(0, 0, 0, 3)
+        handler = StatusBarHandler(status_bar)
+        formatter = logging.Formatter('%(message)s')
         handler.setFormatter(formatter)
         our_logger = logging.getLogger('pmpsdb_client')
         our_logger.addHandler(handler)
@@ -679,6 +682,7 @@ class StatusBarHandler(logging.Handler):
         if self.label is not None:
             self.status_bar.removeWidget(self.label)
         self.label = QLabel(self.format(record))
+        self.label.setIndent(10)
         self.label.setStyleSheet(
             f"QLabel {{ color: {self.colors.get(record.levelno, 'black')} }}"
         )
