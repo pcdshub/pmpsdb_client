@@ -331,10 +331,12 @@ class SummaryTables(DesignerDisplay, QWidget):
     }
     param_dict: dict[str, dict[str, Any]]
     plc_row_map: dict[str, int]
+    ok_rows: dict[int, bool]
     line: str
 
     def __init__(self, plc_config: dict[str, str]):
         super().__init__()
+        self.ok_rows = {}
         self.db_controls = {
             name: PLCDBControls(prefix=prefix + ':', name=name)
             for name, prefix in plc_config.items()
@@ -416,9 +418,11 @@ class SummaryTables(DesignerDisplay, QWidget):
             if '] ' in text and text.startswith('[Errno'):
                 text = text.split('] ')[1]
             text = text.capitalize()
+            self.ok_rows[row] = False
         else:
             logger.debug('%s found file info %s', hostname, info)
             text = 'No upload found'
+            self.ok_rows[row] = True
         filename = hostname_to_filename(hostname)
         for file_info in info:
             if file_info.filename == filename:
@@ -463,7 +467,6 @@ class SummaryTables(DesignerDisplay, QWidget):
             )
             logger.debug('%s found json info %s', hostname, json_info)
         except Exception:
-            json_info = {}
             logger.error(
                 'Could not download %s from %s',
                 filename,
@@ -475,12 +478,13 @@ class SummaryTables(DesignerDisplay, QWidget):
                 filename,
                 exc_info=True,
             )
+            return
         key = hostname_to_key(hostname)
         try:
             self.param_dict = json_info[key]
         except KeyError:
-            self.param_dict = {}
             logger.error('Did not find required entry %s', key)
+            return
         for device_name in self.param_dict:
             self.device_list.addItem(device_name)
 
@@ -606,15 +610,16 @@ class SummaryTables(DesignerDisplay, QWidget):
         """
         When a plc is selected, reset ioc/param tables and seed the device list.
         """
-        self.update_plc_row(row)
-        hostname = self.plc_table.item(row, 0).text()
-        self.fill_device_list(hostname)
         self.param_table.clear()
         self.param_table.setRowCount(0)
         self.param_table.setColumnCount(0)
         self.ioc_table.clear()
         self.ioc_table.setRowCount(0)
         self.ioc_table.setColumnCount(0)
+        self.update_plc_row(row)
+        if self.ok_rows.get(row, False):
+            hostname = self.plc_table.item(row, 0).text()
+            self.fill_device_list(hostname)
 
     def device_selected(self, item: QListWidgetItem) -> None:
         """
