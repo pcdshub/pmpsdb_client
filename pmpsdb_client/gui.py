@@ -158,6 +158,8 @@ class PMPSManagerGui(QMainWindow):
         except Exception:
             logger.error('Failed to upload %s to %s', this_plc_latest.filename, hostname)
             logger.debug('', exc_info=True)
+        else:
+            logger.info('Uploaded latest database file to %s', hostname)
         self.tables.update_plc_row_by_hostname(hostname)
 
     def upload_to(self, action: QAction) -> None:
@@ -206,6 +208,8 @@ class PMPSManagerGui(QMainWindow):
         except Exception:
             logger.error('Failed to upload %s to %s', filename, hostname)
             logger.debug('', exc_info=True)
+        else:
+            logger.info('Uploaded file to %s', hostname)
         self.tables.update_plc_row_by_hostname(hostname)
 
     def download_from(self, action: QAction) -> None:
@@ -258,6 +262,13 @@ class PMPSManagerGui(QMainWindow):
         except Exception as exc:
             logger.error('Error writing file: %s', exc)
             logger.debug('', exc_info=True)
+        else:
+            logger.info(
+                'Downloaded file %s from %s to %s',
+                filename,
+                hostname,
+                save_filename,
+            )
 
     def reload_params(self, action: QAction) -> None:
         """
@@ -283,6 +294,8 @@ class PMPSManagerGui(QMainWindow):
         except Exception as exc:
             logger.error('Error starting param reload for %s: %s', hostname, exc)
             logger.debug('', exc_info=True)
+        else:
+            logger.info('Reloaded params for %s', hostname)
 
 
 class PLCTableColumns(enum.IntEnum):
@@ -487,6 +500,11 @@ class SummaryTables(DesignerDisplay, QWidget):
             return
         for device_name in self.param_dict:
             self.device_list.addItem(device_name)
+        logger.info(
+            'Found %d devices in %s local database',
+            len(self.param_dict),
+            hostname,
+        )
 
     def fill_parameter_table(self, device_name: str) -> None:
         """
@@ -525,6 +543,11 @@ class SummaryTables(DesignerDisplay, QWidget):
             header=header,
             params=device_params,
         )
+        logger.info(
+            'Found %d states for %s in plc database',
+            len(device_params),
+            device_name,
+        )
 
         self.ioc_table.clear()
         self.ioc_table.setRowCount(0)
@@ -554,6 +577,11 @@ class SummaryTables(DesignerDisplay, QWidget):
             table=self.ioc_table,
             header=ioc_header,
             params=ioc_params,
+        )
+        logger.info(
+            'Found %d states for %s in IOC',
+            len(ioc_params),
+            device_name,
         )
 
     def _fill_params(self, table, header, params) -> None:
@@ -610,6 +638,8 @@ class SummaryTables(DesignerDisplay, QWidget):
         """
         When a plc is selected, reset ioc/param tables and seed the device list.
         """
+        hostname = self.plc_table.item(row, 0).text()
+        logger.info('Selecting %s', hostname)
         self.param_table.clear()
         self.param_table.setRowCount(0)
         self.param_table.setColumnCount(0)
@@ -618,13 +648,13 @@ class SummaryTables(DesignerDisplay, QWidget):
         self.ioc_table.setColumnCount(0)
         self.update_plc_row(row)
         if self.ok_rows.get(row, False):
-            hostname = self.plc_table.item(row, 0).text()
             self.fill_device_list(hostname)
 
     def device_selected(self, item: QListWidgetItem) -> None:
         """
         When a device is selected, reset and seed the parameter list.
         """
+        logger.info('Selecting %s', item.text())
         self.fill_parameter_table(item.text())
 
 
