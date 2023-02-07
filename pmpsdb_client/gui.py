@@ -20,8 +20,8 @@ from pcdscalc.pmps import get_bitmask_desc
 from pcdsutils.qt import DesignerDisplay
 from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
                             QListWidget, QListWidgetItem, QMainWindow,
-                            QMessageBox, QTableWidget, QTableWidgetItem,
-                            QWidget)
+                            QMessageBox, QStatusBar, QTableWidget,
+                            QTableWidgetItem, QWidget)
 
 from .beam_class import summarize_beam_class_bitmask
 from .export_data import ExportFile, get_export_dir, get_latest_exported_files
@@ -79,6 +79,7 @@ class PMPSManagerGui(QMainWindow):
         self.tables = SummaryTables(plc_config=self.plc_config)
         self.setCentralWidget(self.tables)
         self.setup_menu_options()
+        self.setup_status_bar()
 
     def setup_menu_options(self):
         """
@@ -114,6 +115,16 @@ class PMPSManagerGui(QMainWindow):
         download_menu.triggered.connect(self.download_from)
         reload_menu.triggered.connect(self.reload_params)
         self.setMenuWidget(menu)
+
+    def setup_status_bar(self) -> None:
+        """
+        Set up the status bar to show log messages INFO and higher.
+        """
+        handler = StatusBarHandler(self.statusBar())
+        formatter = logging.Formatter('%(levelname)s: %(message)s')
+        handler.setFormatter(formatter)
+        our_logger = logging.getLogger('pmpsdb_client')
+        our_logger.addHandler(handler)
 
     def upload_latest(self, action: QAction) -> None:
         """
@@ -610,6 +621,18 @@ class SummaryTables(DesignerDisplay, QWidget):
         When a device is selected, reset and seed the parameter list.
         """
         self.fill_parameter_table(item.text())
+
+
+class StatusBarHandler(logging.Handler):
+    """
+    Logging handler for sending log messages to a QStatusBar.
+    """
+    def __init__(self, status_bar: QStatusBar, level: int = logging.NOTSET) -> None:
+        super().__init__(level=level)
+        self.status_bar = status_bar
+
+    def emit(self, record: logging.LogRecord):
+        self.status_bar.showMessage(self.format(record))
 
 
 def check_server_online(hostname: str) -> bool:
