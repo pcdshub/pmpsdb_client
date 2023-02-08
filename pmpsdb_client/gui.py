@@ -312,6 +312,16 @@ class PLCTableColumns(enum.IntEnum):
     RELOAD = 4
 
 
+class LoadedTableRows(enum.IntEnum):
+    """
+    Row assignments for the loaded table.
+    """
+    PLC_NAME = 0
+    IOC_STATUS = 1
+    HAS_LATEST_EXPORT = 2
+    EXPORT_MATCH_DATE = 3
+
+
 class SummaryTables(DesignerDisplay, QWidget):
     """
     Widget that contains tables of information about deployed PLC databases.
@@ -330,6 +340,8 @@ class SummaryTables(DesignerDisplay, QWidget):
     title_label: QLabel
     plc_label: QLabel
     plc_table: QTableWidget
+    loaded_label: QLabel
+    loaded_table: QTableWidget
     device_label: QLabel
     device_list: QListWidget
     param_label: QLabel
@@ -337,7 +349,7 @@ class SummaryTables(DesignerDisplay, QWidget):
     ioc_label: QLabel
     ioc_table: QTableWidget
 
-    # Human readable colum headers
+    # Human readable column headers
     plc_columns: ClassVar[dict[int, str]] = {
         PLCTableColumns.NAME: 'plc name',
         PLCTableColumns.STATUS: 'status',
@@ -345,6 +357,14 @@ class SummaryTables(DesignerDisplay, QWidget):
         PLCTableColumns.UPLOAD: 'file last uploaded',
         PLCTableColumns.RELOAD: 'params last loaded',
     }
+    # Human readable row headers
+    loaded_columns: ClassVar[dict[int, str]] = {
+        LoadedTableRows.PLC_NAME: 'plc name',
+        LoadedTableRows.IOC_STATUS: 'ioc connect',
+        LoadedTableRows.HAS_LATEST_EXPORT: 'has latest?',
+        LoadedTableRows.EXPORT_MATCH_DATE: 'db match'
+    }
+    cached_db: dict[str: dict[str, dict[str, Any]]]
     param_dict: dict[str, dict[str, Any]]
     plc_row_map: dict[str, int]
     ok_rows: dict[int, bool]
@@ -372,11 +392,20 @@ class SummaryTables(DesignerDisplay, QWidget):
 
     def setup_table_columns(self) -> None:
         """
-        Set the column headers on the plc and parameter tables.
+        Set the column headers on the plc and loaded tables.
         """
         self.plc_table.setColumnCount(len(self.plc_columns))
         headers = [self.plc_columns[index] for index in sorted(self.plc_columns)]
         self.plc_table.setHorizontalHeaderLabels(headers)
+        self.loaded_table.setColumnCount(1)
+        self.loaded_table.setRowCount(len(self.loaded_columns))
+        headers = [self.loaded_columns[index] for index in sorted(self.loaded_columns)]
+        self.loaded_table.setVerticalHeaderLabels(headers)
+        self.loaded_table.setItem(
+            LoadedTableRows.PLC_NAME,
+            0,
+            QTableWidgetItem('No plc loaded'),
+        )
 
     def add_plc(self, hostname: str) -> None:
         """
@@ -469,19 +498,20 @@ class SummaryTables(DesignerDisplay, QWidget):
             else:
                 export_item.setText(plc_export.export_time.ctime())
 
-    def fill_device_list(self, hostname: str) -> None:
+    def get_cached_db(self, hostname: str) -> bool:
         """
-        Cache the PLC's saved db and populate the device list.
+        Download and cache the full contents of the database file.
+
+        Returns True if successful and False otherwise.
         """
-        self.device_list.clear()
-        self.param_table.clear()
+        self.cached_db = None
         filename = hostname_to_filename(hostname)
         try:
-            json_info = download_file_json_dict(
+            self.cached_db = download_file_json_dict(
                 hostname=hostname,
                 filename=filename,
             )
-            logger.debug('%s found json info %s', hostname, json_info)
+            logger.debug('%s found db info %s', hostname, self.cached_db)
         except Exception:
             logger.error(
                 'Could not download %s from %s',
@@ -494,10 +524,52 @@ class SummaryTables(DesignerDisplay, QWidget):
                 filename,
                 exc_info=True,
             )
-            return
+            return False
+        return True
+
+    def fill_loaded_table(self, hostname: str) -> None:
+        """
+        Assemble information for the "loaded" table.
+
+        Requires a valid cached database from get_cached_db
+        """
+        self.loaded_table.clearContents()
+        self.loaded_table.setItem(
+            LoadedTableRows.PLC_NAME,
+            0,
+            QTableWidgetItem(hostname),
+        )
+        ioc_status = 'row not implemented'  # TODO
+        self.loaded_table.setItem(
+            LoadedTableRows.IOC_STATUS,
+            0,
+            QTableWidgetItem(ioc_status),
+        )
+        has_latest = 'row not implemented'  # TODO
+        self.loaded_table.setItem(
+            LoadedTableRows.HAS_LATEST_EXPORT,
+            0,
+            QTableWidgetItem(has_latest),
+        )
+        export_match = 'row not implemented'  # TODO
+        self.loaded_table.setItem(
+            LoadedTableRows.EXPORT_MATCH_DATE,
+            0,
+            QTableWidgetItem(export_match),
+        )
+        self.loaded_table.resizeColumnsToContents()
+
+    def fill_device_list(self, hostname: str) -> None:
+        """
+        Populate the device list.
+
+        Requires a valid cached database from get_cached_db
+        """
+        self.device_list.clear()
+        self.param_table.clear()
         key = hostname_to_key(hostname)
         try:
-            self.param_dict = json_info[key]
+            self.param_dict = self.cached_db[key]
         except KeyError:
             logger.error('Did not find required entry %s', key)
             return
@@ -651,7 +723,9 @@ class SummaryTables(DesignerDisplay, QWidget):
         self.ioc_table.setColumnCount(0)
         self.update_plc_row(row)
         if self.ok_rows.get(row, False):
-            self.fill_device_list(hostname)
+            if self.get_cached_db(hostname):
+                self.fill_loaded_table(hostname)
+                self.fill_device_list(hostname)
 
     def device_selected(self, item: QListWidgetItem) -> None:
         """
