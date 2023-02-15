@@ -19,6 +19,7 @@ import yaml
 from ophyd.utils.epics_pvs import AlarmSeverity
 from pcdscalc.pmps import get_bitmask_desc
 from pcdsutils.qt import DesignerDisplay
+from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
                             QListWidget, QListWidgetItem, QMainWindow,
                             QMessageBox, QStatusBar, QTableWidget,
@@ -51,9 +52,6 @@ PARAMETER_HEADER_ORDER = [
     'notes',
     'special',
 ]
-
-OK = '<span style="color: green;">✔</span>'
-NOT_OK = '<span style="color: red;">❌</span>'
 
 
 class PMPSManagerGui(QMainWindow):
@@ -547,7 +545,7 @@ class SummaryTables(DesignerDisplay, QWidget):
         self.loaded_table.setCellWidget(
             LoadedTableRows.PLC_NAME,
             LoadedTableColumns.EMOJI,
-            QLabel(NOT_OK),
+            not_ok_label(),
         )
         self.loaded_table.setItem(
             LoadedTableRows.PLC_NAME,
@@ -566,7 +564,7 @@ class SummaryTables(DesignerDisplay, QWidget):
         self.loaded_table.setCellWidget(
             LoadedTableRows.PLC_NAME,
             LoadedTableColumns.EMOJI,
-            QLabel(OK),
+            ok_label(),
         )
         self.loaded_table.setItem(
             LoadedTableRows.PLC_NAME,
@@ -576,21 +574,21 @@ class SummaryTables(DesignerDisplay, QWidget):
         if self.db_controls[hostname].connected:
             sev = self.db_controls[hostname].last_refresh.alarm_severity
             if sev == AlarmSeverity.NO_ALARM:
-                ioc_emoji = OK
+                ioc_emoji = ok_label()
                 ioc_status = 'Connected'
             elif sev is None:
-                ioc_emoji = NOT_OK
+                ioc_emoji = not_ok_label()
                 ioc_status = 'Disconnected'
             else:
-                ioc_emoji = NOT_OK
+                ioc_emoji = not_ok_label()
                 ioc_status = AlarmSeverity(int(sev)).name.title()
         else:
-            ioc_emoji = NOT_OK
+            ioc_emoji = not_ok_label()
             ioc_status = 'Disconnected'
         self.loaded_table.setCellWidget(
             LoadedTableRows.IOC_STATUS,
             LoadedTableColumns.EMOJI,
-            QLabel(ioc_emoji),
+            ioc_emoji,
         )
         self.loaded_table.setItem(
             LoadedTableRows.IOC_STATUS,
@@ -607,7 +605,7 @@ class SummaryTables(DesignerDisplay, QWidget):
         else:
             file_info = all_files.get(hostname, None)
         if file_info is None:
-            latest_emoji = NOT_OK
+            latest_emoji = not_ok_label()
             latest_text = 'No files'
         else:
             try:
@@ -615,19 +613,19 @@ class SummaryTables(DesignerDisplay, QWidget):
             except Exception:
                 logger.error('Error reading export file data')
                 logger.debug('', exc_info=True)
-                latest_emoji = NOT_OK
+                latest_emoji = not_ok_label()
                 latest_text = 'Bad file read'
             else:
                 if file_data == self.cached_db:
-                    latest_emoji = OK
+                    latest_emoji = ok_label()
                     latest_text = "Latest file"
                 else:
-                    latest_emoji = NOT_OK
+                    latest_emoji = not_ok_label()
                     latest_text = "Old file"
         self.loaded_table.setCellWidget(
             LoadedTableRows.HAS_LATEST_EXPORT,
             LoadedTableColumns.EMOJI,
-            QLabel(latest_emoji),
+            latest_emoji,
         )
         self.loaded_table.setItem(
             LoadedTableRows.HAS_LATEST_EXPORT,
@@ -869,3 +867,33 @@ def hostname_to_filename(hostname: str) -> str:
     Given a hostname, get the filename associated with it.
     """
     return hostname_to_key(hostname) + '.json'
+
+
+def rich_color(text: str, color: str) -> str:
+    """
+    Adds html color tags to input text.
+    """
+    return f'<span style="color: {color};">{text}</span>'
+
+
+def emoji_label(emoji: str, color: str) -> QLabel:
+    """
+    Create a suitable QLabel to display an emoji symbol.
+    """
+    label = QLabel(rich_color(emoji, color))
+    label.setAlignment(Qt.AlignCenter)
+    return label
+
+
+def ok_label() -> QLabel:
+    """
+    Build a QLabel widget that shows a green checkmark.
+    """
+    return emoji_label("✔", "green")
+
+
+def not_ok_label() -> QLabel:
+    """
+    Build a QLabel widget that shows a red checkmark.
+    """
+    return emoji_label("❌", "red")
