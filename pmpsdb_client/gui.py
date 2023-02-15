@@ -72,6 +72,7 @@ class PMPSManagerGui(QMainWindow):
     """
     def __init__(self, configs: list[str]):
         super().__init__()
+        self.setWindowTitle('PMPSDB Client GUI')
         if not configs:
             configs = select_default_config()
         self.plc_config = {}
