@@ -6,6 +6,7 @@ from __future__ import annotations
 import collections
 import dataclasses
 import datetime
+import json
 import logging
 import os
 import os.path
@@ -58,6 +59,10 @@ class ExportFile:
 
     def get_plc_filename(self) -> str:
         return f'{self.plc_name}.json'
+
+    def get_data(self) -> dict:
+        with open(self.full_path) as fd:
+            return json.load(fd)
 
 
 def get_exported_files() -> list[ExportFile]:

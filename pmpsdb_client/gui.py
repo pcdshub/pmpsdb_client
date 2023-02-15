@@ -545,7 +545,26 @@ class SummaryTables(DesignerDisplay, QWidget):
             0,
             QTableWidgetItem(ioc_status),
         )
-        has_latest = 'row not implemented'  # TODO
+        # Open the latest file and compare it to the cached db
+        try:
+            all_files = get_latest_exported_files()
+        except Exception:
+            logger.error('Error checking file system for exports')
+            logger.debug('', exc_info=True)
+            file_info = None
+        else:
+            file_info = all_files.get(hostname, None)
+        if file_info is None:
+            has_latest = 'No files found'
+        else:
+            try:
+                file_data = file_info.get_data()
+            except Exception:
+                logger.error('Error reading export file data')
+                logger.debug('', exc_info=True)
+                has_latest = 'Error'
+            else:
+                has_latest = str(file_data == self.cached_db)
         self.loaded_table.setItem(
             LoadedTableRows.HAS_LATEST_EXPORT,
             0,
