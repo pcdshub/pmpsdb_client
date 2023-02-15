@@ -319,7 +319,6 @@ class LoadedTableRows(enum.IntEnum):
     PLC_NAME = 0
     IOC_STATUS = 1
     HAS_LATEST_EXPORT = 2
-    EXPORT_MATCH_DATE = 3
 
 
 class SummaryTables(DesignerDisplay, QWidget):
@@ -361,8 +360,7 @@ class SummaryTables(DesignerDisplay, QWidget):
     loaded_columns: ClassVar[dict[int, str]] = {
         LoadedTableRows.PLC_NAME: 'plc name',
         LoadedTableRows.IOC_STATUS: 'ioc connect',
-        LoadedTableRows.HAS_LATEST_EXPORT: 'has latest?',
-        LoadedTableRows.EXPORT_MATCH_DATE: 'db match'
+        LoadedTableRows.HAS_LATEST_EXPORT: 'has latest',
     }
     cached_db: dict[str: dict[str, dict[str, Any]]]
     param_dict: dict[str, dict[str, Any]]
@@ -569,12 +567,6 @@ class SummaryTables(DesignerDisplay, QWidget):
             LoadedTableRows.HAS_LATEST_EXPORT,
             0,
             QTableWidgetItem(has_latest),
-        )
-        export_match = 'row not implemented'  # TODO
-        self.loaded_table.setItem(
-            LoadedTableRows.EXPORT_MATCH_DATE,
-            0,
-            QTableWidgetItem(export_match),
         )
         self.loaded_table.resizeColumnsToContents()
 
