@@ -703,7 +703,7 @@ class SummaryTables(DesignerDisplay, QWidget):
             file_info = all_files.get(hostname, None)
         if file_info is None:
             latest_emoji = not_ok_label()
-            latest_text = 'No files'
+            latest_text = 'No export files'
         else:
             try:
                 file_data = file_info.get_data()
