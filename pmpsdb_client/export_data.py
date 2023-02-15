@@ -66,6 +66,7 @@ class ExportFile:
 
 
 def get_exported_files() -> list[ExportFile]:
+    """The full contents of the export directory."""
     all_filenames = os.listdir(get_export_dir())
     all_exports = []
     for filename in all_filenames:
@@ -82,6 +83,7 @@ def get_exported_files() -> list[ExportFile]:
 
 
 def select_latest_exported_files(all_exports: list[ExportFile]) -> dict[str, ExportFile]:
+    """Get the latest file for each PLC, given a list of exports."""
     null_file = ExportFile(plc_name='', export_time=datetime.datetime(datetime.MINYEAR, 1, 1), filename='', full_path='')
     latest_exports = collections.defaultdict(lambda: null_file)
     for export in all_exports:
@@ -91,4 +93,5 @@ def select_latest_exported_files(all_exports: list[ExportFile]) -> dict[str, Exp
 
 
 def get_latest_exported_files() -> dict[str, ExportFile]:
+    """Get the latest file for each PLC."""
     return select_latest_exported_files(get_exported_files())

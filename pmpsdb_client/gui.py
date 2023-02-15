@@ -20,8 +20,8 @@ from ophyd.utils.epics_pvs import AlarmSeverity
 from pcdscalc.pmps import get_bitmask_desc
 from pcdsutils.qt import DesignerDisplay
 from qtpy.QtCore import Qt
-from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
-                            QListWidget, QListWidgetItem, QMainWindow,
+from qtpy.QtWidgets import (QAction, QDialog, QFileDialog, QInputDialog,
+                            QLabel, QListWidget, QListWidgetItem, QMainWindow,
                             QMessageBox, QStatusBar, QTableWidget,
                             QTableWidgetItem, QWidget)
 
@@ -82,6 +82,7 @@ class PMPSManagerGui(QMainWindow):
         self.setCentralWidget(self.tables)
         self.setup_menu_options()
         self.setup_status_bar()
+        self.device_map = None
         logger.info('pmpsdb client gui loaded')
 
     def setup_menu_options(self):
@@ -89,6 +90,7 @@ class PMPSManagerGui(QMainWindow):
         Create entries and actions in the menu for all configured PLCs.
         """
         menu = self.menuBar()
+
         file_menu = menu.addMenu('&File')
         upload_latest_menu = file_menu.addMenu('Upload &Latest to')
         upload_menu = file_menu.addMenu('&Upload to')
@@ -117,6 +119,11 @@ class PMPSManagerGui(QMainWindow):
         upload_menu.triggered.connect(self.upload_to)
         download_menu.triggered.connect(self.download_from)
         reload_menu.triggered.connect(self.reload_params)
+
+        device_menu = menu.addMenu('&Device')
+        find_plc_action = device_menu.addAction('&Find Device PLC')
+        find_plc_action.triggered.connect(self.find_plc)
+
         self.setMenuWidget(menu)
 
     def setup_status_bar(self) -> None:
@@ -301,6 +308,66 @@ class PMPSManagerGui(QMainWindow):
             logger.debug('', exc_info=True)
         else:
             logger.info('Reloaded params for %s', hostname)
+
+    def find_plc(self, *args, **kwargs):
+        """Show the DeviceMap dialog."""
+        if self.device_map is None:
+            self.device_map = DeviceMap()
+        self.device_map.update_data(self.plc_hostnames)
+        self.device_map.raise_()
+        self.device_map.show()
+
+
+class DeviceMap(DesignerDisplay, QDialog):
+    """
+    Dialog that shows the mapping between device and plc
+    """
+    filename = Path(__file__).parent / 'device_map.ui'
+
+    table: QTableWidget
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setWindowTitle('Device to PLC Map')
+
+    def update_data(self, plc_hostnames):
+        exports = get_latest_exported_files()
+        data = {}
+        for plc_name, export_file in exports.items():
+            if plc_name not in plc_hostnames:
+                continue
+            try:
+                device_data = export_file.get_data()[plc_name]
+            except Exception:
+                logger.error('Error reading export file data for %s', plc_name)
+                logger.debug('', exc_info=True)
+            else:
+                for device_name in device_data:
+                    if device_name in data:
+                        logger.error(
+                            'Device %s is in both %s and %s',
+                            device_name,
+                            plc_name,
+                            data[device_name]
+                        )
+                    else:
+                        data[device_name] = plc_name
+
+        self.table.clearContents()
+        self.table.setRowCount(0)
+        for row_num, (device_name, plc_name) in enumerate(sorted(data.items())):
+            self.table.insertRow(row_num)
+            self.table.setItem(
+                row_num,
+                0,
+                QTableWidgetItem(device_name),
+            )
+            self.table.setItem(
+                row_num,
+                1,
+                QTableWidgetItem(plc_name),
+            )
+        self.table.resizeColumnsToContents()
 
 
 class PLCTableColumns(enum.IntEnum):
