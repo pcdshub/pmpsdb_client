@@ -19,10 +19,9 @@ import yaml
 from ophyd.utils.epics_pvs import AlarmSeverity
 from pcdscalc.pmps import get_bitmask_desc
 from pcdsutils.qt import DesignerDisplay
-from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
                             QListWidget, QListWidgetItem, QMainWindow,
-                            QMessageBox, QStatusBar, QStyle, QTableWidget,
+                            QMessageBox, QStatusBar, QTableWidget,
                             QTableWidgetItem, QWidget)
 
 from .beam_class import summarize_beam_class_bitmask
@@ -52,6 +51,9 @@ PARAMETER_HEADER_ORDER = [
     'notes',
     'special',
 ]
+
+OK = "✔"
+NOT_OK = "❌"
 
 
 class PMPSManagerGui(QMainWindow):
@@ -545,7 +547,7 @@ class SummaryTables(DesignerDisplay, QWidget):
         self.loaded_table.setItem(
             LoadedTableRows.PLC_NAME,
             LoadedTableColumns.EMOJI,
-            QTableWidgetItem(self.x_icon(), ''),
+            QTableWidgetItem(NOT_OK),
         )
         self.loaded_table.setItem(
             LoadedTableRows.PLC_NAME,
@@ -564,7 +566,7 @@ class SummaryTables(DesignerDisplay, QWidget):
         self.loaded_table.setItem(
             LoadedTableRows.PLC_NAME,
             LoadedTableColumns.EMOJI,
-            QTableWidgetItem(self.check_icon(), ''),
+            QTableWidgetItem(OK),
         )
         self.loaded_table.setItem(
             LoadedTableRows.PLC_NAME,
@@ -574,21 +576,21 @@ class SummaryTables(DesignerDisplay, QWidget):
         if self.db_controls[hostname].connected:
             sev = self.db_controls[hostname].last_refresh.alarm_severity
             if sev == AlarmSeverity.NO_ALARM:
-                ioc_icon = self.check_icon()
+                ioc_emoji = OK
                 ioc_status = 'Connected'
             elif sev is None:
-                ioc_icon = self.x_icon()
+                ioc_emoji = NOT_OK
                 ioc_status = 'Disconnected'
             else:
-                ioc_icon = self.x_icon()
+                ioc_emoji = NOT_OK
                 ioc_status = AlarmSeverity(int(sev)).name.title()
         else:
-            ioc_icon = self.x_icon()
+            ioc_emoji = NOT_OK
             ioc_status = 'Disconnected'
         self.loaded_table.setItem(
             LoadedTableRows.IOC_STATUS,
             LoadedTableColumns.EMOJI,
-            QTableWidgetItem(ioc_icon, ''),
+            QTableWidgetItem(ioc_emoji),
         )
         self.loaded_table.setItem(
             LoadedTableRows.IOC_STATUS,
@@ -605,27 +607,27 @@ class SummaryTables(DesignerDisplay, QWidget):
         else:
             file_info = all_files.get(hostname, None)
         if file_info is None:
-            latest_icon = self.x_icon()
-            latest_text = 'No exports'
+            latest_emoji = NOT_OK
+            latest_text = 'No files'
         else:
             try:
                 file_data = file_info.get_data()
             except Exception:
                 logger.error('Error reading export file data')
                 logger.debug('', exc_info=True)
-                latest_icon = self.x_icon()
-                latest_text = 'No PLC file'
+                latest_emoji = NOT_OK
+                latest_text = 'Bad file read'
             else:
                 if file_data == self.cached_db:
-                    latest_icon = self.check_icon()
+                    latest_emoji = OK
                     latest_text = "Latest file"
                 else:
-                    latest_icon = self.x_icon()
+                    latest_emoji = NOT_OK
                     latest_text = "Old file"
         self.loaded_table.setItem(
             LoadedTableRows.HAS_LATEST_EXPORT,
             LoadedTableColumns.EMOJI,
-            QTableWidgetItem(latest_icon, ''),
+            QTableWidgetItem(latest_emoji),
         )
         self.loaded_table.setItem(
             LoadedTableRows.HAS_LATEST_EXPORT,
@@ -810,12 +812,6 @@ class SummaryTables(DesignerDisplay, QWidget):
         """
         logger.info('Selecting %s', item.text())
         self.fill_parameter_table(item.text())
-
-    def check_icon(self) -> QIcon:
-        return self.style().standardIcon(QStyle.SP_DialogApplyButton)
-
-    def x_icon(self) -> QIcon:
-        return self.style().standardIcon(QStyle.SP_DialogCancelButton)
 
 
 class StatusBarHandler(logging.Handler):
