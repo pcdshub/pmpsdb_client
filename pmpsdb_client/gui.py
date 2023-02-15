@@ -52,6 +52,9 @@ PARAMETER_HEADER_ORDER = [
     'special',
 ]
 
+OK = "✔"
+NOT_OK = "❌"
+
 
 class PMPSManagerGui(QMainWindow):
     """
@@ -322,6 +325,14 @@ class LoadedTableRows(enum.IntEnum):
     HAS_LATEST_EXPORT = 2
 
 
+class LoadedTableColumns(enum.IntEnum):
+    """
+    Column assignments for the loaded table.
+    """
+    EMOJI = 0
+    TEXT = 1
+
+
 class SummaryTables(DesignerDisplay, QWidget):
     """
     Widget that contains tables of information about deployed PLC databases.
@@ -358,10 +369,15 @@ class SummaryTables(DesignerDisplay, QWidget):
         PLCTableColumns.RELOAD: 'params last loaded',
     }
     # Human readable row headers
-    loaded_columns: ClassVar[dict[int, str]] = {
+    loaded_rows: ClassVar[dict[int, str]] = {
         LoadedTableRows.PLC_NAME: 'plc name',
         LoadedTableRows.IOC_STATUS: 'ioc connect',
         LoadedTableRows.HAS_LATEST_EXPORT: 'has latest',
+    }
+    # Human readable column headers
+    loaded_columns: ClassVar[dict[int, str]] = {
+        LoadedTableColumns.EMOJI: 'Ok',
+        LoadedTableColumns.TEXT: 'Status',
     }
     cached_db: dict[str: dict[str, dict[str, Any]]]
     param_dict: dict[str, dict[str, Any]]
@@ -396,15 +412,12 @@ class SummaryTables(DesignerDisplay, QWidget):
         self.plc_table.setColumnCount(len(self.plc_columns))
         headers = [self.plc_columns[index] for index in sorted(self.plc_columns)]
         self.plc_table.setHorizontalHeaderLabels(headers)
-        self.loaded_table.setColumnCount(1)
-        self.loaded_table.setRowCount(len(self.loaded_columns))
+        self.loaded_table.setColumnCount(len(self.loaded_columns))
         headers = [self.loaded_columns[index] for index in sorted(self.loaded_columns)]
-        self.loaded_table.setVerticalHeaderLabels(headers)
-        self.loaded_table.setItem(
-            LoadedTableRows.PLC_NAME,
-            0,
-            QTableWidgetItem('No plc loaded'),
-        )
+        self.loaded_table.setHorizontalHeaderLabels(headers)
+        self.loaded_table.setRowCount(len(self.loaded_rows))
+        # Vertical (row) header skipped here: looks better without it
+        self.clear_loaded_table()
 
     def add_plc(self, hostname: str) -> None:
         """
@@ -526,31 +539,62 @@ class SummaryTables(DesignerDisplay, QWidget):
             return False
         return True
 
+    def clear_loaded_table(self) -> None:
+        """
+        Empty the loaded table and replace it with stock not-loaded info.
+        """
+        self.loaded_table.clearContents()
+        self.loaded_table.setItem(
+            LoadedTableRows.PLC_NAME,
+            LoadedTableColumns.EMOJI,
+            QTableWidgetItem(NOT_OK),
+        )
+        self.loaded_table.setItem(
+            LoadedTableRows.PLC_NAME,
+            LoadedTableColumns.TEXT,
+            QTableWidgetItem('No plc loaded'),
+        )
+        self.loaded_table.resizeColumnsToContents()
+
     def fill_loaded_table(self, hostname: str) -> None:
         """
         Assemble information for the "loaded" table.
 
         Requires a valid cached database from get_cached_db
         """
-        self.loaded_table.clearContents()
+        self.clear_loaded_table()
         self.loaded_table.setItem(
             LoadedTableRows.PLC_NAME,
-            0,
+            LoadedTableColumns.EMOJI,
+            QTableWidgetItem(OK),
+        )
+        self.loaded_table.setItem(
+            LoadedTableRows.PLC_NAME,
+            LoadedTableColumns.TEXT,
             QTableWidgetItem(hostname),
         )
         if self.db_controls[hostname].connected:
             sev = self.db_controls[hostname].last_refresh.alarm_severity
             if sev == AlarmSeverity.NO_ALARM:
-                ioc_status = 'connected'
+                ioc_emoji = OK
+                ioc_status = 'Connected'
             elif sev is None:
-                ioc_status = 'disconnected'
+                ioc_emoji = NOT_OK
+                ioc_status = 'Disconnected'
             else:
-                ioc_status = AlarmSeverity(int(sev)).name
+                ioc_emoji = NOT_OK
+                ioc_status = AlarmSeverity(int(sev)).name.title()
         else:
-            ioc_status = 'disconnected'
+            ioc_emoji = NOT_OK
+            ioc_status = 'Disconnected'
         self.loaded_table.setItem(
             LoadedTableRows.IOC_STATUS,
-            0,
+            LoadedTableColumns.EMOJI,
+            QTableWidgetItem(ioc_emoji),
+        )
+        self.loaded_table.setItem(
+            LoadedTableRows.IOC_STATUS,
+            LoadedTableColumns.TEXT,
             QTableWidgetItem(ioc_status),
         )
         # Open the latest file and compare it to the cached db
@@ -563,20 +607,32 @@ class SummaryTables(DesignerDisplay, QWidget):
         else:
             file_info = all_files.get(hostname, None)
         if file_info is None:
-            has_latest = 'No files found'
+            latest_emoji = NOT_OK
+            latest_text = 'No files'
         else:
             try:
                 file_data = file_info.get_data()
             except Exception:
                 logger.error('Error reading export file data')
                 logger.debug('', exc_info=True)
-                has_latest = 'Error'
+                latest_emoji = NOT_OK
+                latest_text = 'Bad file read'
             else:
-                has_latest = str(file_data == self.cached_db)
+                if file_data == self.cached_db:
+                    latest_emoji = OK
+                    latest_text = "Latest file"
+                else:
+                    latest_emoji = NOT_OK
+                    latest_text = "Old file"
         self.loaded_table.setItem(
             LoadedTableRows.HAS_LATEST_EXPORT,
-            0,
-            QTableWidgetItem(has_latest),
+            LoadedTableColumns.EMOJI,
+            QTableWidgetItem(latest_emoji),
+        )
+        self.loaded_table.setItem(
+            LoadedTableRows.HAS_LATEST_EXPORT,
+            LoadedTableColumns.TEXT,
+            QTableWidgetItem(latest_text),
         )
         self.loaded_table.resizeColumnsToContents()
 
@@ -742,6 +798,8 @@ class SummaryTables(DesignerDisplay, QWidget):
         self.ioc_table.clear()
         self.ioc_table.setRowCount(0)
         self.ioc_table.setColumnCount(0)
+        self.clear_loaded_table()
+        self.device_list.clear()
         self.update_plc_row(row)
         if self.ok_rows.get(row, False):
             if self.get_cached_db(hostname):
