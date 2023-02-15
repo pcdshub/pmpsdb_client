@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 import yaml
+from ophyd.utils.epics_pvs import AlarmSeverity
 from pcdscalc.pmps import get_bitmask_desc
 from pcdsutils.qt import DesignerDisplay
 from qtpy.QtWidgets import (QAction, QFileDialog, QInputDialog, QLabel,
@@ -537,7 +538,16 @@ class SummaryTables(DesignerDisplay, QWidget):
             0,
             QTableWidgetItem(hostname),
         )
-        ioc_status = 'row not implemented'  # TODO
+        if self.db_controls[hostname].connected:
+            sev = self.db_controls[hostname].last_refresh.alarm_severity
+            if sev == AlarmSeverity.NO_ALARM:
+                ioc_status = 'connected'
+            elif sev is None:
+                ioc_status = 'disconnected'
+            else:
+                ioc_status = AlarmSeverity(int(sev)).name
+        else:
+            ioc_status = 'disconnected'
         self.loaded_table.setItem(
             LoadedTableRows.IOC_STATUS,
             0,
