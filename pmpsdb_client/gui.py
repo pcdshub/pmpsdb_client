@@ -52,8 +52,8 @@ PARAMETER_HEADER_ORDER = [
     'special',
 ]
 
-OK = "✔"
-NOT_OK = "❌"
+OK = '<span style="color: green;">✔</span>'
+NOT_OK = '<span style="color: red;">❌</span>'
 
 
 class PMPSManagerGui(QMainWindow):
@@ -544,10 +544,10 @@ class SummaryTables(DesignerDisplay, QWidget):
         Empty the loaded table and replace it with stock not-loaded info.
         """
         self.loaded_table.clearContents()
-        self.loaded_table.setItem(
+        self.loaded_table.setCellWidget(
             LoadedTableRows.PLC_NAME,
             LoadedTableColumns.EMOJI,
-            QTableWidgetItem(NOT_OK),
+            QLabel(NOT_OK),
         )
         self.loaded_table.setItem(
             LoadedTableRows.PLC_NAME,
@@ -563,10 +563,10 @@ class SummaryTables(DesignerDisplay, QWidget):
         Requires a valid cached database from get_cached_db
         """
         self.clear_loaded_table()
-        self.loaded_table.setItem(
+        self.loaded_table.setCellWidget(
             LoadedTableRows.PLC_NAME,
             LoadedTableColumns.EMOJI,
-            QTableWidgetItem(OK),
+            QLabel(OK),
         )
         self.loaded_table.setItem(
             LoadedTableRows.PLC_NAME,
@@ -587,10 +587,10 @@ class SummaryTables(DesignerDisplay, QWidget):
         else:
             ioc_emoji = NOT_OK
             ioc_status = 'Disconnected'
-        self.loaded_table.setItem(
+        self.loaded_table.setCellWidget(
             LoadedTableRows.IOC_STATUS,
             LoadedTableColumns.EMOJI,
-            QTableWidgetItem(ioc_emoji),
+            QLabel(ioc_emoji),
         )
         self.loaded_table.setItem(
             LoadedTableRows.IOC_STATUS,
@@ -624,10 +624,10 @@ class SummaryTables(DesignerDisplay, QWidget):
                 else:
                     latest_emoji = NOT_OK
                     latest_text = "Old file"
-        self.loaded_table.setItem(
+        self.loaded_table.setCellWidget(
             LoadedTableRows.HAS_LATEST_EXPORT,
             LoadedTableColumns.EMOJI,
-            QTableWidgetItem(latest_emoji),
+            QLabel(latest_emoji),
         )
         self.loaded_table.setItem(
             LoadedTableRows.HAS_LATEST_EXPORT,
