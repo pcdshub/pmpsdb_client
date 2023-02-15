@@ -11,6 +11,7 @@ import enum
 import logging
 import os
 import os.path
+import socket
 import subprocess
 from pathlib import Path
 from typing import Any, ClassVar
@@ -72,7 +73,7 @@ class PMPSManagerGui(QMainWindow):
     def __init__(self, configs: list[str]):
         super().__init__()
         if not configs:
-            configs = [str(Path(__file__).parent / 'pmpsdb_tst.yml')]
+            configs = select_default_config()
         self.plc_config = {}
         for config in configs:
             with open(config, 'r') as fd:
@@ -316,6 +317,34 @@ class PMPSManagerGui(QMainWindow):
         self.device_map.update_data(self.plc_hostnames)
         self.device_map.raise_()
         self.device_map.show()
+
+
+def select_default_config() -> list[str]:
+    """
+    Select the most likely correct config based on the hostname.
+    """
+    hostname = socket.gethostname()
+    if 'kfe' in hostname:
+        configs = ['kfe']
+    elif 'tmo' in hostname:
+        configs = ['kfe', 'tmo']
+    elif 'rix' in hostname:
+        configs = ['kfe', 'rix']
+    elif 'lfe' in hostname:
+        configs = ['lfe']
+    elif 'xpp' in hostname:
+        configs = ['lfe']
+    elif 'xcs' in hostname:
+        configs = ['lfe']
+    elif 'mfx' in hostname:
+        configs = ['lfe']
+    elif 'cxi' in hostname:
+        configs = ['lfe']
+    elif 'mec' in hostname:
+        configs = ['lfe']
+    else:
+        configs = ['tst']
+    return [str(Path(__file__).parent / f'pmpsdb_{cfg}.yml') for cfg in configs]
 
 
 class DeviceMap(DesignerDisplay, QDialog):

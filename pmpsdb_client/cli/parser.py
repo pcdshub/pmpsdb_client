@@ -43,7 +43,8 @@ def create_parser() -> argparse.ArgumentParser:
         action='store_true',
         help=(
             'Load the included test PLCs configuration file. '
-            'If no configurations are picked, tst is the default.'
+            'If no configurations are picked, and we are on a test machine, '
+            'tst is the default.'
         ),
     )
     gui.add_argument(
@@ -56,36 +57,48 @@ def create_parser() -> argparse.ArgumentParser:
         action='store_true',
         help=(
             'Load all lfe-side non-test PLC configuration files. '
-            'This will include the lfe config and any relevant hutch configs.'
+            'This will include the lfe config and any relevant hutch configs. '
         )
     )
     gui.add_argument(
         '--lfe',
         action='store_true',
-        help='Load the included lfe PLCs configuration file.',
+        help=(
+            'Load the included lfe PLCs configuration file. '
+            'This is the default if we are on lfe-console. '
+        ),
     )
     gui.add_argument(
         '--kfe-all',
         action='store_true',
         help=(
             'Load all kfe-side non-test PLC configuration files. '
-            'This will include the kfe config and any relevant hutch configs.'
+            'This will include the kfe config and any relevant hutch configs. '
         )
     )
     gui.add_argument(
         '--kfe',
         action='store_true',
-        help='Load the included kfe PLCs configuration file.',
+        help=(
+            'Load the included kfe PLCs configuration file. '
+            'This is the default if we are on kfe-console. '
+        ),
     )
     gui.add_argument(
         '--tmo',
         action='store_true',
-        help='Load the included kfe and tmo PLCs configuration files.',
+        help=(
+            'Load the included kfe and tmo PLCs configuration files. '
+            'This is the default if we are on a tmo operator console.'
+        ),
     )
     gui.add_argument(
         '--rix',
         action='store_true',
-        help='Load the included kfe and rix PLCs configuration files.',
+        help=(
+            'Load the included kfe and rix PLCs configuration files. '
+            'This is the default if we are on a rix operator console.'
+        ),
     )
 
     list_files = subparsers.add_parser(
