@@ -174,7 +174,7 @@ class PMPSManagerGui(QMainWindow):
             logger.debug('', exc_info=True)
         else:
             logger.info('Uploaded latest database file to %s', hostname)
-        self.tables.update_plc_row_by_hostname(hostname)
+        self.tables.on_file_upload(hostname)
 
     def upload_to(self, action: QAction) -> None:
         """
@@ -224,7 +224,7 @@ class PMPSManagerGui(QMainWindow):
             logger.debug('', exc_info=True)
         else:
             logger.info('Uploaded file to %s', hostname)
-        self.tables.update_plc_row_by_hostname(hostname)
+        self.tables.on_file_upload(hostname)
 
     def download_from(self, action: QAction) -> None:
         """
@@ -907,6 +907,21 @@ class SummaryTables(DesignerDisplay, QWidget):
         """
         logger.info('Selecting %s', item.text())
         self.fill_parameter_table(item.text())
+
+    def on_file_upload(self, hostname: str) -> None:
+        """
+        This should be ran when a file is uploaded by the user in this gui session.
+
+        This will select the corresponding PLC in the GUI in order to reload and
+        show the pertinent information for that PLC.
+        """
+        for plc_row in range(self.plc_table.rowCount()):
+            if self.plc_table.item(plc_row, PLCTableColumns.NAME).text() == hostname:
+                # Visual selection, doesn't "activate" (double-click) the cell
+                self.plc_table.setCurrentCell(plc_row, PLCTableColumns.NAME)
+                # Manually run the "activate" slot
+                self.plc_selected(plc_row, PLCTableColumns.NAME)
+                break
 
 
 class StatusBarHandler(logging.Handler):
