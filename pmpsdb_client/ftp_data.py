@@ -10,6 +10,7 @@ from __future__ import annotations
 import datetime
 import ftplib
 import json
+import logging
 import os
 import typing
 from contextlib import contextmanager
@@ -17,8 +18,11 @@ from dataclasses import dataclass
 
 DEFAULT_PW = (
     ('Administrator', '1'),
+    ('webguest', '1'),
 )
 DIRECTORY = 'pmps'
+
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -42,22 +46,25 @@ def ftp(hostname: str, directory: typing.Optional[str] = None) -> ftplib.FTP:
     ftp : ftplib.FTP
         An active FTP instance that can be used to read and write files.
     """
+    logger.debug('ftp(%s, %s)', hostname, directory)
     # Default directory
     directory = directory or DIRECTORY
     # Create without connecting
-    ftp_obj = ftplib.FTP(hostname)
+    ftp_obj = ftplib.FTP(hostname, timeout=2.0)
     # Beckhoff docs recommend active mode
     ftp_obj.set_pasv(False)
     # Best-effort login using default passwords
     rval = None
     for user, pwd in DEFAULT_PW:
         try:
+            logger.debug('Try user=%s', user)
             rval = ftp_obj.login(user=user, passwd=pwd)
         except ftplib.error_perm:
             pass
     # Fallback to anonymous login
     # Try last, might have reduced perms
     if rval is None:
+        logger.debug('Try anonymous login')
         rval = ftp_obj.login()
     if rval is None:
         raise RuntimeError('Could not log into PLC using default passwords.')
@@ -97,6 +104,7 @@ def list_filenames(
     filenames : list of str
         The filenames on the PLC.
     """
+    logger.debug('list_filenames(%s, %s)', hostname, directory)
     with ftp(hostname=hostname, directory=directory) as ftp_obj:
         return ftp_obj.nlst()
 
@@ -129,6 +137,7 @@ class PLCFile:
         line : str
             A single line of text output from the ftp LIST command.
         """
+        logger.debug('PLCFile.from_list_line(%s)', line)
         date, time, size, filename = line.split()
         month, day, year = date.split('-')
         hour, minute = time.split(':')
@@ -167,6 +176,7 @@ def list_file_info(
         Information about our files, such as their creation times, sizes, and
         filenames.
     """
+    logger.debug('list_file_info(%s, %s)', hostname, directory)
     lines = []
     with ftp(hostname=hostname, directory=directory) as ftp_obj:
         ftp_obj.retrlines('LIST', lines.append)
@@ -195,6 +205,13 @@ def upload_file(
         The ftp subdirectory to read and write from
         A default directory pmps is used if this argument is omitted.
     """
+    logger.debug(
+        'upload_file(%s, %s, %s, %s)',
+        hostname,
+        target_filename,
+        fd,
+        directory,
+    )
     with ftp(hostname=hostname, directory=directory) as ftp_obj:
         ftp_obj.storbinary(f'STOR {target_filename}', fd)
 
@@ -202,6 +219,7 @@ def upload_file(
 def upload_filename(
     hostname: str,
     filename: str,
+    dest_filename: typing.Optional[str] = None,
     directory: typing.Optional[str] = None,
 ):
     """
@@ -217,10 +235,17 @@ def upload_filename(
         The ftp subdirectory to read and write from
         A default directory pmps is used if this argument is omitted.
     """
+    logger.debug(
+        'upload_file(%s, %s, %s, %s)',
+        hostname,
+        filename,
+        dest_filename,
+        directory,
+    )
     with open(filename, 'rb') as fd:
         upload_file(
             hostname=hostname,
-            target_filename=os.path.basename(filename),
+            target_filename=dest_filename or os.path.basename(filename),
             fd=fd,
             directory=directory,
         )
@@ -252,6 +277,12 @@ def download_file_text(
     text: str
         The contents from the file.
     """
+    logger.debug(
+        'download_file_text(%s, %s, %s)',
+        hostname,
+        filename,
+        directory,
+    )
     byte_chunks = []
     with ftp(hostname=hostname, directory=directory) as ftp_obj:
         ftp_obj.retrbinary(f'RETR {filename}', byte_chunks.append)
@@ -287,6 +318,12 @@ def download_file_json_dict(
     data : dict
         The dictionary data from the file stored on the plc.
     """
+    logger.debug(
+        'download_file_json_dict(%s, %s, %s)',
+        hostname,
+        filename,
+        directory,
+    )
     return json.loads(
         download_file_text(
             hostname=hostname,
@@ -312,13 +349,15 @@ def local_file_json_dict(filename: str) -> dict[str, dict[str, typing.Any]]:
     data : dict
         The dictionary data from the file stored on the local drive.
     """
+    logger.debug('local_file_json_dict(%s)', filename)
     with open(filename, 'r') as fd:
         return json.load(fd)
 
 
 def compare_file(
     hostname: str,
-    filename: str,
+    local_filename: str,
+    plc_filename: typing.Optional[str] = None,
     directory: typing.Optional[str] = None,
 ) -> bool:
     """
@@ -328,8 +367,11 @@ def compare_file(
     ----------
     hostname : str
         The plc hostname to download from.
-    filename : str
-        The name of the file on the PLC and on the local drive.
+    local_filename: str
+        The full path the local file to compare with.
+    plc_filename: str, optional
+        The filename as saved on the PLC. If omitted, the local_filename's
+        basename will be used.
     directory : str, optional
         The ftp subdirectory to read and write from
         A default directory pmps is used if this argument is omitted.
@@ -339,10 +381,17 @@ def compare_file(
     same_file : bool
         True if the contents of these two files are the same.
     """
-    local_data = local_file_json_dict(filename=filename)
+    logger.debug(
+        'compare_file(%s, %s, %s, %s)',
+        hostname,
+        local_filename,
+        plc_filename,
+        directory,
+    )
+    local_data = local_file_json_dict(filename=local_filename)
     plc_data = download_file_json_dict(
         hostname=hostname,
-        filename=filename,
+        filename=plc_filename,
         directory=directory,
     )
     return local_data == plc_data
