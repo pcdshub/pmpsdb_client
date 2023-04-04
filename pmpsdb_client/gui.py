@@ -853,6 +853,9 @@ class SummaryTables(DesignerDisplay, QWidget):
                 device_name.replace('-', ':') + ':Y:STATE:',
                 device_name.replace('-', ':') + ':X:STATE:'
             ]
+        elif 'SOMS' in device_name or 'KBO' in device_name:
+            # Mirror coatings
+            return [device_name.replace('-', ':') + ':COATING:STATE:']
         else:
             # PPM, XPIM, WFS, others?
             return [device_name.replace('-', ':') + ':MMS:STATE:']
