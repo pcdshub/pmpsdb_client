@@ -1,34 +1,45 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
+requires = [ "setuptools>=45", "setuptools_scm[toml]>=6.2",]
 
 [project]
-name = "pmpsdb_client"
+classifiers = [ "Development Status :: 4 - Beta", "Natural Language :: English", "Programming Language :: Python :: 3",]
 description = "Client application for interfacing with the PMPS database and the deployed PLC files."
-readme = "README.md"
-requires-python = ">=3.9"
+dynamic = [ "version", "readme", "dependencies", "optional-dependencies",]
 keywords = ["pmps", "pmpsdb", "lcls"]
-license = {text = "BSD 3-Clause License"}
-classifiers = [
-    "Programming Language :: Python :: 3",
-]
-dependencies = [
-    "ophyd",
-    "pcdscalc",
-    "pcdsutils",
-    "prettytable",
-    "qtpy",
-]
-dynamic = ["version"]
+name = "pmpsdb_client"
+requires-python = ">=3.9"
 
-[tool.setuptools_scm]
-write_to = "pmpsdb_client/_version.py"
+[[project.authors]]
+name = "SLAC National Accelerator Laboratory"
 
-[project.optional-dependencies]
-gui = ["PyQt5"]
+[options]
+zip_safe = false
+include_package_data = true
+
+[project.license]
+file = "LICENSE.md"
 
 [project.scripts]
 pmpsdb = "pmpsdb_client:cli.entrypoint"
 
-# ... other project metadata fields as specified in:
-#     https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
+[tool.setuptools_scm]
+write_to = "pmpsdb_client/_version.py"
+
+[tool.setuptools.packages.find]
+where = [ ".",]
+include = [ "pmpsdb_client*",]
+namespaces = false
+
+[tool.setuptools.dynamic.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[tool.setuptools.dynamic.dependencies]
+file = [ "requirements.txt",]
+
+[tool.setuptools.dynamic.optional-dependencies.test]
+file = "dev-requirements.txt"
+
+#[tool.setuptools.dynamic.optional-dependencies.docs]
+#file = "docs-requirements.txt"
