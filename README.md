@@ -39,6 +39,8 @@ package. This is done from the root directory here by calling
 This application will not work unless you have access to the LCLS controls networks.
 It is designed to run on an endstation's operator consoles.
 
+The most common usage will be to open the gui from an operator console as simply `pmpsdb gui`.
+
 
 ## Installation
 This package can be installed using recent versions of `pip` that support
@@ -46,9 +48,8 @@ the `pyproject.toml` format.
 
 To install, you can choose one of the following:
 - `pip install pmpsdb_client` to install from pypi
-- clone this repo and run the following from the root directory: `pip install .`
-- install directly from github via: `pip install 'pmpsdb_client @ git+https://github.com/pcdshub/pmpsdb_client@v1.1.2'`
-for example, to install version v1.1.2.
+- clone this repo, check out the desired tag, and run the following from the root directory: `pip install .`
+- install directly from github via: `pip install 'pmpsdb_client @ git+https://github.com/pcdshub/pmpsdb_client@v1.1.2'` for example, to install version v1.1.2.
 
 
 ## PLC Configuration
