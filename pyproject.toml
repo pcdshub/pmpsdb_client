@@ -23,9 +23,6 @@ file = "LICENSE.md"
 [project.scripts]
 pmpsdb = "pmpsdb_client:cli.entrypoint"
 
-[project.optional-dependencies]
-gui = ["PyQt5"]
-
 [tool.setuptools_scm]
 write_to = "pmpsdb_client/_version.py"
 
