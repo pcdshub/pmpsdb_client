@@ -94,7 +94,7 @@ def list_filenames(
     Parameters
     ----------
     hostname : str
-        The plc hostname to upload to.
+        The plc hostname to check.
     directory : str, optional
         The ftp subdirectory to read and write from
         A default directory pmps is used if this argument is omitted.
