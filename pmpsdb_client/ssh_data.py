@@ -6,9 +6,11 @@ PLCs.
 """
 from __future__ import annotations
 
+import datetime
 import logging
 import typing
 from contextlib import contextmanager
+from dataclasses import dataclass
 
 from fabric import Connection
 
@@ -18,6 +20,8 @@ DEFAULT_PW = (
     ("Administrator", "1"),
 )
 DIRECTORY = "/Hard Disk/ftp/pmps"
+
+T = typing.TypeVar("T")
 
 
 @contextmanager
@@ -58,12 +62,51 @@ def ssh(
             raise RuntimeError("Unable to connect to PLC")
 
 
-def list_filenames(
+@dataclass(frozen=True)
+class FileInfo:
+    """
+    File information from *nix systems.
+    """
+    is_directory: bool
+    links: int
+    permissions: str
+    user: str
+    group: str
+    size: int
+    last_changed: datetime.datetime
+    filename: str
+
+    @classmethod
+    def get_output_lines(cls, conn: Connection) -> str:
+        return conn.run("ls -l -D %s", hide=True).stdout
+
+    @classmethod
+    def from_all_output_lines(cls: T, output_lines) -> list[T]:
+        return [cls.from_output_line(line) for line in output_lines.strip().split("\n")[1:]]
+
+    @classmethod
+    def from_output_line(cls: T, output: str) -> T:
+        print(output)
+        type_perms, links, user, group, size, date, filename = output.strip().split()
+
+        return cls(
+            is_directory=type_perms[0] == "d",
+            permissions=type_perms[1:],
+            links=int(links),
+            user=user,
+            group=group,
+            size=int(size),
+            last_changed=datetime.datetime.fromtimestamp(int(date)),
+            filename=filename,
+        )
+
+
+def get_file_info(
     hostname: str,
     directory: typing.Optional[str] = None,
-) -> list[str]:
+) -> list[FileInfo]:
     """
-    List the filenames that are currently saved on the PLC.
+    Get information about the files that are currently saved on the PLC.
 
     Parameters
     ----------
@@ -80,5 +123,5 @@ def list_filenames(
     """
     logger.debug("list_filenames(%s, %s)", hostname, directory)
     with ssh(hostname=hostname, directory=directory) as conn:
-        output = conn.run("ls", hide=True).stdout
-    return output.strip().split("\n")
+        output = FileInfo.get_output_lines(conn)
+    return FileInfo.from_all_output_lines(output)
