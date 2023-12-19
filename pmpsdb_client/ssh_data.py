@@ -68,8 +68,8 @@ class FileInfo:
     File information from *nix systems.
     """
     is_directory: bool
-    links: int
     permissions: str
+    links: int
     user: str
     group: str
     size: int
