@@ -76,17 +76,16 @@ class FileInfo:
     last_changed: datetime.datetime
     filename: str
 
-    @classmethod
-    def get_output_lines(cls, conn: Connection) -> str:
+    @staticmethod
+    def get_output_lines(conn: Connection) -> str:
         return conn.run("ls -l -D %s", hide=True).stdout
 
     @classmethod
-    def from_all_output_lines(cls: T, output_lines) -> list[T]:
+    def from_all_output_lines(cls: type[T], output_lines) -> list[T]:
         return [cls.from_output_line(line) for line in output_lines.strip().split("\n")[1:]]
 
     @classmethod
-    def from_output_line(cls: T, output: str) -> T:
-        print(output)
+    def from_output_line(cls: type[T], output: str) -> T:
         type_perms, links, user, group, size, date, filename = output.strip().split()
 
         return cls(
@@ -101,7 +100,7 @@ class FileInfo:
         )
 
 
-def get_file_info(
+def list_file_info(
     hostname: str,
     directory: typing.Optional[str] = None,
 ) -> list[FileInfo]:
