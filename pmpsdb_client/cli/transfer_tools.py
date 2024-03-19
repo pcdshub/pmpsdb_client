@@ -7,7 +7,7 @@ import os.path
 from typing import Optional
 
 from ..export_data import ExportFile, get_latest_exported_files
-from ..ftp_data import (compare_file, download_file_text, list_file_info,
+from ..plc_data import (compare_file, download_file_text, list_file_info,
                         upload_filename)
 
 logger = logging.getLogger(__name__)
@@ -21,10 +21,16 @@ def cli_list_files(args: argparse.Namespace) -> int:
 def _list_files(hostname: str) -> int:
     infos = list_file_info(hostname=hostname)
     for data in infos:
-        print(
-            f'{data.filename} uploaded at {data.create_time.ctime()} '
-            f'({data.size} bytes)'
-        )
+        try:
+            print(
+                f'{data.filename} uploaded at {data.create_time.ctime()} '
+                f'({data.size} bytes)'
+            )
+        except AttributeError:
+            print(
+                f'{data.filename} uploaded at {data.last_changed.ctime()} '
+                f'({data.size} bytes)'
+            )
     if not infos:
         logger.warning('No files found')
     return 0

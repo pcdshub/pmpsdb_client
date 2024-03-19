@@ -1,3 +1,5 @@
+plc-tst-bsd1: "PLC:TST:BSD1"
+plc-tst-bsd2: "PLC:TST:BSD2"
 plc-tst-motion: "PLC:TST:MOT"
 plc-tst-pmps-subsytem-a: "PLC:TST:PMPS:A"
 plc-tst-pmps-subsytem-b: "PLC:TST:PMPS:B"

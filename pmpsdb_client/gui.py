@@ -28,9 +28,9 @@ from qtpy.QtWidgets import (QAction, QDialog, QFileDialog, QInputDialog,
 
 from .beam_class import summarize_beam_class_bitmask
 from .export_data import ExportFile, get_export_dir, get_latest_exported_files
-from .ftp_data import (download_file_json_dict, download_file_text,
-                       list_file_info, upload_filename)
 from .ioc_data import AllStateBP, PLCDBControls
+from .plc_data import (download_file_json_dict, download_file_text,
+                       list_file_info, upload_filename)
 
 logger = logging.getLogger(__name__)
 
@@ -578,7 +578,10 @@ class SummaryTables(DesignerDisplay, QWidget):
         filename = hostname_to_filename(hostname)
         for file_info in info:
             if file_info.filename == filename:
-                text = file_info.create_time.ctime()
+                try:
+                    text = file_info.create_time.ctime()
+                except AttributeError:
+                    text = file_info.last_changed.ctime()
                 break
         self.plc_table.item(row, PLCTableColumns.UPLOAD).setText(text)
         if update_export:

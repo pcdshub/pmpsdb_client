@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import datetime
 import logging
-import typing
 from contextlib import contextmanager
 from dataclasses import dataclass
 from io import StringIO
+from typing import Iterator, TypeVar
 
 from fabric import Connection
 
@@ -22,14 +22,14 @@ DEFAULT_PW = (
 )
 DIRECTORY = "/home/{user}/pmpsdb"
 
-T = typing.TypeVar("T")
+T = TypeVar("T")
 
 
 @contextmanager
 def ssh(
     hostname: str,
-    directory: typing.Optional[str] = None,
-) -> typing.Iterator[Connection]:
+    directory: str | None = None,
+) -> Iterator[Connection]:
     """
     Context manager to handle a single ssh connection.
 
@@ -106,7 +106,7 @@ class FileInfo:
 
 def list_file_info(
     hostname: str,
-    directory: typing.Optional[str] = None,
+    directory: str | None = None,
 ) -> list[FileInfo]:
     """
     Get information about the files that are currently saved on the PLC.
@@ -133,8 +133,8 @@ def list_file_info(
 def upload_filename(
     hostname: str,
     filename: str,
-    dest_filename: typing.Optional[str] = None,
-    directory: typing.Optional[str] = None,
+    dest_filename: str | None = None,
+    directory: str | None = None,
 ):
     """
     Open and upload a file on your filesystem to a PLC.
@@ -161,7 +161,7 @@ def upload_filename(
 def download_file_text(
     hostname: str,
     filename: str,
-    directory: typing.Optional[str] = None,
+    directory: str | None = None,
 ) -> str:
     """
     Download a file from the PLC to use in Python.
