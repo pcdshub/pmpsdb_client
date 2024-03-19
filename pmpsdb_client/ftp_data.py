@@ -230,7 +230,9 @@ def upload_filename(
     hostname : str
         The plc hostname to upload to.
     filename : str
-        The name of the file on both your filesystem and on the PLC.
+        The name of the file on your filesystem.
+    dest_filename : str, optional
+        The name of the file on the PLC. If omitted, same as filename.
     directory : str, optional
         The ftp subdirectory to read and write from
         A default directory pmps is used if this argument is omitted.

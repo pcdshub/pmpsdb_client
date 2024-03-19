@@ -11,15 +11,16 @@ import logging
 import typing
 from contextlib import contextmanager
 from dataclasses import dataclass
+from io import StringIO
 
 from fabric import Connection
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_PW = (
-    ("Administrator", "1"),
+    ("ecs-user", "1"),
 )
-DIRECTORY = "/Hard Disk/ftp/pmps"
+DIRECTORY = "/home/{user}/pmpsdb"
 
 T = typing.TypeVar("T")
 
@@ -28,14 +29,13 @@ T = typing.TypeVar("T")
 def ssh(
     hostname: str,
     directory: typing.Optional[str] = None,
-) -> Connection:
+) -> typing.Iterator[Connection]:
     """
     Context manager to handle a single ssh connection.
 
     Within one connection we can do any number of remote operations on the
     TCBSD PLC.
     """
-    directory = directory or DIRECTORY
     connected = False
     excs = []
 
@@ -51,6 +51,10 @@ def ssh(
                 excs.append(exc)
                 continue
             connected = True
+            directory = directory or DIRECTORY.format(user=user)
+            result = conn.run(f"mkdir -p {directory}")
+            if result.exited != 0:
+                raise RuntimeError(f"Failed to create directory {directory}")
             with conn.cd(directory):
                 yield conn
     if not connected:
@@ -117,10 +121,71 @@ def list_file_info(
 
     Returns
     -------
-    filenames : list of str
-        The filenames on the PLC.
+    filenames : list of FileInfo
+        Information about all the files in the PLC's pmps folder.
     """
-    logger.debug("list_filenames(%s, %s)", hostname, directory)
+    logger.debug("list_file_info(%s, %s)", hostname, directory)
     with ssh(hostname=hostname, directory=directory) as conn:
         output = FileInfo.get_output_lines(conn)
     return FileInfo.from_all_output_lines(output)
+
+
+def upload_filename(
+    hostname: str,
+    filename: str,
+    dest_filename: typing.Optional[str] = None,
+    directory: typing.Optional[str] = None,
+):
+    """
+    Open and upload a file on your filesystem to a PLC.
+
+    Parameters
+    ----------
+    hostname : str
+        The plc hostname to upload to.
+    filename : str
+        The name of the file on your filesystem.
+    dest_filename : str, optional
+        The name of the file on the PLC. If omitted, same as filename.
+    directory : str, optional
+        The ssh subdirectory to read and write from
+        A default directory /home/ecs-user/pmpsdb is used if this argument is omitted.
+    """
+    logger.debug("upload_filename(%s, %s, %s, %s)", hostname, filename, dest_filename, directory)
+    if dest_filename is None:
+        dest_filename = filename
+    with ssh(hostname=hostname, directory=directory) as conn:
+        conn.put(local=filename, remote=dest_filename)
+
+
+def download_file_text(
+    hostname: str,
+    filename: str,
+    directory: typing.Optional[str] = None,
+) -> str:
+    """
+    Download a file from the PLC to use in Python.
+
+    The result is a single string, suitable for operations like
+    json.loads
+
+    Parameters
+    ----------
+    hostname : str
+        The plc hostname to download from.
+    filename : str
+        The name of the file on the PLC.
+    directory : str, optional
+        The ssh subdirectory to read and write from
+        A default directory /home/ecs-user/pmpsdb is used if this argument is omitted.
+
+    Returns
+    -------
+    text: str
+        The contents from the file.
+    """
+    logger.debug("download_file_text(%s, %s, %s)", hostname, filename, directory)
+    stringio = StringIO()
+    with ssh(hostname=hostname, directory=directory) as conn:
+        conn.get(remote=filename, local=stringio)
+    return stringio.getvalue()
