@@ -10,7 +10,7 @@ import datetime
 import logging
 from contextlib import contextmanager
 from dataclasses import dataclass
-from io import StringIO
+from io import BytesIO
 from pathlib import Path
 from typing import Iterator, TypeVar
 
@@ -203,9 +203,9 @@ def download_file_text(
         The contents from the file.
     """
     logger.debug("download_file_text(%s, %s, %s)", hostname, filename, directory)
-    stringio = StringIO()
+    bytesio = BytesIO()
     with ssh(hostname=hostname, directory=directory) as conn:
         if directory is None:
             directory = conn.cwd
-        conn.get(remote=str(Path(directory) / filename), local=stringio)
-    return stringio.getvalue()
+        conn.get(remote=str(Path(directory) / filename), local=bytesio)
+    return bytesio.getvalue().decode(encoding="utf-8")
