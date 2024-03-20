@@ -14,6 +14,8 @@ from io import StringIO
 from typing import Iterator, TypeVar
 
 from fabric import Connection
+from fabric.config import Config
+from paramiko.config import SSHConfig
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,13 @@ DEFAULT_PW = (
     ("ecs-user", "1"),
 )
 DIRECTORY = "/home/{user}/pmpsdb"
+SSH_CONFIG = """
+Host *
+    ForwardAgent no
+    ForwardX11 no
+    ForwardX11Trusted no
+    PreferredAuthentications=password
+"""
 
 T = TypeVar("T")
 
@@ -43,7 +52,11 @@ def ssh(
         with Connection(
             host=hostname,
             user=user,
-            connect_kwargs={"password": pw}
+            config=Config(ssh_config=SSHConfig.from_text(SSH_CONFIG)),
+            connect_kwargs={
+                "password": pw,
+                "allow_agent": False,
+            },
         ) as conn:
             try:
                 conn.open()

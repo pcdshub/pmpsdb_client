@@ -53,6 +53,9 @@ def _main(args: argparse.Namespace) -> int:
             level=logging.INFO,
             format='%(levelname)s: %(message)s',
         )
+        # Noisy log messages from ssh transport layer
+        for module in ("fabric", "paramiko", "intake"):
+            logging.getLogger(module).setLevel(logging.WARNING)
     if args.export_dir:
         from ..export_data import set_export_dir
         set_export_dir(args.export_dir)
