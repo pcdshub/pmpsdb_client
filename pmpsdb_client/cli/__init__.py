@@ -47,7 +47,10 @@ def _main(args: argparse.Namespace) -> int:
         print(version)
         return 0
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s %(levelname)s: %(name)s %(message)s",
+        )
     else:
         logging.basicConfig(
             level=logging.INFO,

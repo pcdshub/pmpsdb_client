@@ -63,21 +63,27 @@ def list_file_info(
         data_method = DataMethod.unk
 
     if data_method == DataMethod.ssh:
+        logger.debug("Using cached ssh method to list files for %s", hostname)
         return ssh_data.list_file_info(hostname=hostname, directory=directory)
     elif data_method == DataMethod.ftp:
+        logger.debug("Using cached ftp method to list files for %s", hostname)
         return ftp_data.list_file_info(hostname=hostname, directory=directory)
     elif data_method == DataMethod.unk:
+        logger.debug("Connection method unknown, check if ssh method works for %s", hostname)
         try:
             file_info = ssh_data.list_file_info(hostname=hostname, directory=directory)
         except Exception:
+            logger.debug("ssh failed, check if ftp method works for %s", hostname)
             try:
                 file_info = ftp_data.list_file_info(hostname=hostname, directory=directory)
             except Exception:
                 raise RuntimeError(f"Cannot get data method for {hostname}")
             else:
+                logger.debug("Cache %s method as ftp", hostname)
                 plc_mapping[hostname] = DataMethod.ftp
                 return file_info
         else:
+            logger.debug("Cache %s method as ssh", hostname)
             plc_mapping[hostname] = DataMethod.ssh
             return file_info
     else:
