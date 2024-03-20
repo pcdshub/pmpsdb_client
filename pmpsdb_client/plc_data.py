@@ -77,6 +77,7 @@ def list_file_info(
             try:
                 file_info = ftp_data.list_file_info(hostname=hostname, directory=directory)
             except Exception:
+                logger.debug("ftp failed too, maybe %s is offline or not set up", hostname)
                 raise RuntimeError(f"Cannot get data method for {hostname}")
             else:
                 logger.debug("Cache %s method as ftp", hostname)

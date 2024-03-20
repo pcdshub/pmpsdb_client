@@ -49,7 +49,7 @@ def ftp(hostname: str, directory: str | None = None) -> Iterator[ftplib.FTP]:
     # Default directory
     directory = directory or DIRECTORY
     # Create without connecting
-    ftp_obj = ftplib.FTP(hostname, timeout=2.0)
+    ftp_obj = ftplib.FTP(hostname, timeout=1.0)
     # Beckhoff docs recommend active mode
     ftp_obj.set_pasv(False)
     # Best-effort login using default passwords
