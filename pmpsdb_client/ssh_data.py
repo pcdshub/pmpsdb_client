@@ -11,6 +11,7 @@ import logging
 from contextlib import contextmanager
 from dataclasses import dataclass
 from io import StringIO
+from pathlib import Path
 from typing import Iterator, TypeVar
 
 from fabric import Connection
@@ -68,6 +69,8 @@ def ssh(
             result = conn.run(f"mkdir -p {directory}")
             if result.exited != 0:
                 raise RuntimeError(f"Failed to create directory {directory}")
+            # Note: conn.cd only affects calls to conn.run, not conn.get or conn.put
+            # Use conn.cwd property to check this live
             with conn.cd(directory):
                 yield conn
     if not connected:
@@ -168,7 +171,9 @@ def upload_filename(
     if dest_filename is None:
         dest_filename = filename
     with ssh(hostname=hostname, directory=directory) as conn:
-        conn.put(local=filename, remote=dest_filename)
+        if directory is None:
+            directory = conn.cwd
+        conn.put(local=filename, remote=str(Path(directory) / dest_filename))
 
 
 def download_file_text(
@@ -200,5 +205,7 @@ def download_file_text(
     logger.debug("download_file_text(%s, %s, %s)", hostname, filename, directory)
     stringio = StringIO()
     with ssh(hostname=hostname, directory=directory) as conn:
-        conn.get(remote=filename, local=stringio)
+        if directory is None:
+            directory = conn.cwd
+        conn.get(remote=str(Path(directory) / filename), local=stringio)
     return stringio.getvalue()
