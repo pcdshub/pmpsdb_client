@@ -21,26 +21,19 @@ plc_mapping: dict[str, DataMethod] = {}
 class DataMethod(enum.Enum):
     ssh = enum.auto()
     ftp = enum.auto()
+    unk = enum.auto()
 
 
 def get_data_method(hostname: str, directory: str | None = None) -> DataMethod:
+    """
+    For functions other than list_file_info: pick the data method from the cache,
+    or by calling list_file_info.
+    """
     try:
         return plc_mapping[hostname]
     except KeyError:
-        ...
-    try:
-        ssh_data.list_file_info(hostname=hostname, directory=directory)
-    except Exception:
-        try:
-            ftp_data.list_file_info(hostname=hostname, directory=directory)
-        except Exception:
-            raise RuntimeError(f"Cannot get data method for {hostname}")
-        else:
-            plc_mapping[hostname] = DataMethod.ftp
-            return DataMethod.ftp
-    else:
-        plc_mapping[hostname] = DataMethod.ssh
-        return DataMethod.ssh
+        list_file_info(hostname=hostname, directory=directory)
+    return plc_mapping[hostname]
 
 
 def list_file_info(
@@ -64,11 +57,29 @@ def list_file_info(
     filenames : list of FileInfo or PLCFile
         Information about all the files in the PLC's pmps folder.
     """
-    data_method = get_data_method(hostname=hostname, directory=directory)
+    try:
+        data_method = plc_mapping[hostname]
+    except KeyError:
+        data_method = DataMethod.unk
+
     if data_method == DataMethod.ssh:
         return ssh_data.list_file_info(hostname=hostname, directory=directory)
     elif data_method == DataMethod.ftp:
         return ftp_data.list_file_info(hostname=hostname, directory=directory)
+    elif data_method == DataMethod.unk:
+        try:
+            file_info = ssh_data.list_file_info(hostname=hostname, directory=directory)
+        except Exception:
+            try:
+                file_info = ftp_data.list_file_info(hostname=hostname, directory=directory)
+            except Exception:
+                raise RuntimeError(f"Cannot get data method for {hostname}")
+            else:
+                plc_mapping[hostname] = DataMethod.ftp
+                return file_info
+        else:
+            plc_mapping[hostname] = DataMethod.ssh
+            return file_info
     else:
         raise RuntimeError(f"Unhandled data method {data_method}")
 
