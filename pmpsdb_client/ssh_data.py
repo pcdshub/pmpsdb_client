@@ -54,6 +54,7 @@ def ssh(
             host=hostname,
             user=user,
             config=Config(ssh_config=SSHConfig.from_text(SSH_CONFIG)),
+            connect_timeout=1,
             connect_kwargs={
                 "password": pw,
                 "allow_agent": False,
