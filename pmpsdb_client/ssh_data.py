@@ -18,7 +18,7 @@ from fabric import Connection
 from fabric.config import Config
 from paramiko.config import SSHConfig
 
-logger = logging.getLogger(__name__)
+from .data_types import FileInfo
 
 DEFAULT_PW = (
     ("ecs-user", "1"),
@@ -33,6 +33,8 @@ Host *
 """
 
 T = TypeVar("T")
+
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -84,18 +86,17 @@ def ssh(
 
 
 @dataclass(frozen=True)
-class FileInfo:
+class SSHFileInfo(FileInfo):
     """
     File information from *nix systems.
+
+    Adds extra detail not available through ftp.
     """
     is_directory: bool
     permissions: str
     links: int
     user: str
     group: str
-    size: int
-    last_changed: datetime.datetime
-    filename: str
 
     @staticmethod
     def get_output_lines(conn: Connection) -> str:
@@ -124,7 +125,7 @@ class FileInfo:
 def list_file_info(
     hostname: str,
     directory: str | None = None,
-) -> list[FileInfo]:
+) -> list[SSHFileInfo]:
     """
     Get information about the files that are currently saved on the PLC.
 
@@ -143,8 +144,8 @@ def list_file_info(
     """
     logger.debug("list_file_info(%s, %s)", hostname, directory)
     with ssh(hostname=hostname, directory=directory) as conn:
-        output = FileInfo.get_output_lines(conn)
-    return FileInfo.from_all_output_lines(output)
+        output = SSHFileInfo.get_output_lines(conn)
+    return SSHFileInfo.from_all_output_lines(output)
 
 
 def upload_filename(

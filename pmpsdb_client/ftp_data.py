@@ -13,7 +13,9 @@ import logging
 import os
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import BinaryIO, Iterator
+from typing import BinaryIO, Iterator, TypeVar
+
+from .data_types import FileInfo
 
 DEFAULT_PW = (
     ('Administrator', '1'),
@@ -22,6 +24,7 @@ DEFAULT_PW = (
 DIRECTORY = 'pmps'
 
 logger = logging.getLogger(__name__)
+T = TypeVar("T")
 
 
 @contextmanager
@@ -108,20 +111,18 @@ def list_filenames(
         return ftp_obj.nlst()
 
 
-@dataclass
-class PLCFile:
+@dataclass(frozen=True)
+class FTPFileInfo(FileInfo):
     """
     Information about a file on the PLC as learned through ftp.
 
-    In the context of pmps, the create_time is the last time we
-    updated the database export file.
+    Contains very few fields: ftp doesn't give us a lot of info.
+    See data_types.FileInfo for the field information.
+    This protocol is what limits the amount of fields we can assume
+    are available when we don't know the PLC's type.
     """
-    filename: str
-    create_time: datetime.datetime
-    size: int
-
     @classmethod
-    def from_list_line(cls, line: str) -> PLCFile:
+    def from_list_line(cls: type[T], line: str) -> T:
         """
         Create a PLCFile from the output of the ftp LIST command.
 
@@ -149,15 +150,15 @@ class PLCFile:
         )
         return cls(
             filename=filename,
-            create_time=full_datetime,
             size=int(size),
+            last_changed=full_datetime,
         )
 
 
 def list_file_info(
     hostname: str,
     directory: str | None = None,
-) -> list[PLCFile]:
+) -> list[FTPFileInfo]:
     """
     Gather pertinent information about all the files.
 
@@ -179,7 +180,7 @@ def list_file_info(
     lines = []
     with ftp(hostname=hostname, directory=directory) as ftp_obj:
         ftp_obj.retrlines('LIST', lines.append)
-    return [PLCFile.from_list_line(line) for line in lines]
+    return [FTPFileInfo.from_list_line(line) for line in lines]
 
 
 def upload_file(

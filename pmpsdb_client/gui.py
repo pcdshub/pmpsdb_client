@@ -578,10 +578,7 @@ class SummaryTables(DesignerDisplay, QWidget):
         filename = hostname_to_filename(hostname)
         for file_info in info:
             if file_info.filename == filename:
-                try:
-                    text = file_info.create_time.ctime()
-                except AttributeError:
-                    text = file_info.last_changed.ctime()
+                text = file_info.last_changed.ctime()
                 break
         self.plc_table.item(row, PLCTableColumns.UPLOAD).setText(text)
         if update_export:

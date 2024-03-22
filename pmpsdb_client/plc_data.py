@@ -13,6 +13,7 @@ import logging
 from typing import Any
 
 from . import ftp_data, ssh_data
+from .data_types import FileInfo
 
 logger = logging.getLogger(__name__)
 plc_mapping: dict[str, DataMethod] = {}
@@ -39,7 +40,7 @@ def get_data_method(hostname: str, directory: str | None = None) -> DataMethod:
 def list_file_info(
     hostname: str,
     directory: str | None = None,
-) -> list[ssh_data.FileInfo | ftp_data.PLCFile]:
+) -> list[FileInfo]:
     """
     Get information about the files that are currently saved on the PLC.
 
@@ -54,7 +55,7 @@ def list_file_info(
 
     Returns
     -------
-    filenames : list of FileInfo or PLCFile
+    filenames : list of FileInfo
         Information about all the files in the PLC's pmps folder.
     """
     try:
