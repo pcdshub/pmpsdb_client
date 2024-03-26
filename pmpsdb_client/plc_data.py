@@ -97,7 +97,7 @@ def upload_filename(
     filename: str,
     dest_filename: str | None = None,
     directory: str | None = None,
-):
+) -> None:
     """
     Open and upload a file on your filesystem to a PLC.
 
@@ -110,7 +110,7 @@ def upload_filename(
     dest_filename : str, optional
         The name of the file on the PLC. If omitted, same as filename.
     directory : str, optional
-        The ssh subdirectory to read and write from
+        The subdirectory to read and write from
         A default directory is used if this argument is omitted,
         which depends on the PLC OS.
     """
@@ -151,8 +151,9 @@ def download_file_text(
     filename : str
         The name of the file on the PLC.
     directory : str, optional
-        The ssh subdirectory to read and write from
-        A default directory /home/ecs-user/pmpsdb is used if this argument is omitted.
+        The subdirectory to read and write from
+        A default directory is used if this argument is omitted,
+        which depends on the PLC OS.
 
     Returns
     -------
@@ -194,8 +195,9 @@ def download_file_json_dict(
     filename : str
         The name of the file on the PLC.
     directory : str, optional
-        The ftp subdirectory to read and write from
-        A default directory pmps is used if this argument is omitted.
+        The subdirectory to read and write from
+        A default directory is used if this argument is omitted,
+        which depends on the PLC OS.
 
     Returns
     -------
@@ -257,8 +259,9 @@ def compare_file(
         The filename as saved on the PLC. If omitted, the local_filename's
         basename will be used.
     directory : str, optional
-        The ftp subdirectory to read and write from
-        A default directory pmps is used if this argument is omitted.
+        The subdirectory to read and write from
+        A default directory is used if this argument is omitted,
+        which depends on the PLC OS.
 
     Returns
     -------
