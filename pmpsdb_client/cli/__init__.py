@@ -47,12 +47,18 @@ def _main(args: argparse.Namespace) -> int:
         print(version)
         return 0
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s %(levelname)s: %(name)s %(message)s",
+        )
     else:
         logging.basicConfig(
             level=logging.INFO,
             format='%(levelname)s: %(message)s',
         )
+        # Noisy log messages from ssh transport layer
+        for module in ("fabric", "paramiko", "intake"):
+            logging.getLogger(module).setLevel(logging.WARNING)
     if args.export_dir:
         from ..export_data import set_export_dir
         set_export_dir(args.export_dir)

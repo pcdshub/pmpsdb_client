@@ -1,0 +1,43 @@
+{% set package_name = "pmpsdb_client" %}
+{% set import_name = "pmpsdb_client" %}
+{% set version = load_file_regex(load_file=os.path.join(import_name, "_version.py"), regex_pattern=".*version = '(\S+)'").group(1) %}
+
+package:
+  name: {{ package_name }}
+  version : {{ version }}
+
+source:
+  path: ..
+
+build:
+  number: 0
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - python >=3.9
+    - pip
+    - setuptools_scm
+  run:
+    - python >=3.9
+    - fabric
+    - ophyd
+    - pcdscalc
+    - pcdsutils
+    - prettytable
+    - qtpy
+  run_constrained:
+    - pyqt =5
+
+test:
+  requires:
+    - pytest
+    - pyqt=5.15
+  imports:
+    - {{ import_name }}
+
+about:
+  home: https://github.com/pcdshub/pcdsdevices
+  license: SLAC Open License
+  summary: IOC definitions for LCLS Beamline Devices

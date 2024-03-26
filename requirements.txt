@@ -1,6 +1,6 @@
+fabric
 ophyd
 pcdscalc
 pcdsutils
 prettytable
 qtpy
-setuptools-scm

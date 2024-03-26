@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import datetime
 import ftplib
-import json
 import logging
 import os
-import typing
 from contextlib import contextmanager
 from dataclasses import dataclass
+from typing import BinaryIO, Iterator, TypeVar
+
+from .data_types import FileInfo
 
 DEFAULT_PW = (
     ('Administrator', '1'),
@@ -23,10 +24,11 @@ DEFAULT_PW = (
 DIRECTORY = 'pmps'
 
 logger = logging.getLogger(__name__)
+T = TypeVar("T")
 
 
 @contextmanager
-def ftp(hostname: str, directory: typing.Optional[str] = None) -> ftplib.FTP:
+def ftp(hostname: str, directory: str | None = None) -> Iterator[ftplib.FTP]:
     """
     Context manager that manages an FTP connection.
 
@@ -50,7 +52,7 @@ def ftp(hostname: str, directory: typing.Optional[str] = None) -> ftplib.FTP:
     # Default directory
     directory = directory or DIRECTORY
     # Create without connecting
-    ftp_obj = ftplib.FTP(hostname, timeout=2.0)
+    ftp_obj = ftplib.FTP(hostname, timeout=1.0)
     # Beckhoff docs recommend active mode
     ftp_obj.set_pasv(False)
     # Best-effort login using default passwords
@@ -86,7 +88,7 @@ def ftp(hostname: str, directory: typing.Optional[str] = None) -> ftplib.FTP:
 
 def list_filenames(
     hostname: str,
-    directory: typing.Optional[str] = None,
+    directory: str | None = None,
 ) -> list[str]:
     """
     List the filenames that are currently saved on the PLC.
@@ -94,7 +96,7 @@ def list_filenames(
     Parameters
     ----------
     hostname : str
-        The plc hostname to upload to.
+        The plc hostname to check.
     directory : str, optional
         The ftp subdirectory to read and write from
         A default directory pmps is used if this argument is omitted.
@@ -109,20 +111,18 @@ def list_filenames(
         return ftp_obj.nlst()
 
 
-@dataclass
-class PLCFile:
+@dataclass(frozen=True)
+class FTPFileInfo(FileInfo):
     """
     Information about a file on the PLC as learned through ftp.
 
-    In the context of pmps, the create_time is the last time we
-    updated the database export file.
+    Contains very few fields: ftp doesn't give us a lot of info.
+    See data_types.FileInfo for the field information.
+    This protocol is what limits the amount of fields we can assume
+    are available when we don't know the PLC's type.
     """
-    filename: str
-    create_time: datetime.datetime
-    size: int
-
     @classmethod
-    def from_list_line(cls, line: str) -> PLCFile:
+    def from_list_line(cls: type[T], line: str) -> T:
         """
         Create a PLCFile from the output of the ftp LIST command.
 
@@ -150,15 +150,15 @@ class PLCFile:
         )
         return cls(
             filename=filename,
-            create_time=full_datetime,
             size=int(size),
+            last_changed=full_datetime,
         )
 
 
 def list_file_info(
     hostname: str,
-    directory: typing.Optional[str] = None,
-) -> list[PLCFile]:
+    directory: str | None = None,
+) -> list[FTPFileInfo]:
     """
     Gather pertinent information about all the files.
 
@@ -180,14 +180,14 @@ def list_file_info(
     lines = []
     with ftp(hostname=hostname, directory=directory) as ftp_obj:
         ftp_obj.retrlines('LIST', lines.append)
-    return [PLCFile.from_list_line(line) for line in lines]
+    return [FTPFileInfo.from_list_line(line) for line in lines]
 
 
 def upload_file(
     hostname: str,
     target_filename: str,
-    fd: typing.BinaryIO,
-    directory: typing.Optional[str] = None,
+    fd: BinaryIO,
+    directory: str | None = None,
 ):
     """
     Upload an open file to a PLC.
@@ -219,8 +219,8 @@ def upload_file(
 def upload_filename(
     hostname: str,
     filename: str,
-    dest_filename: typing.Optional[str] = None,
-    directory: typing.Optional[str] = None,
+    dest_filename: str | None = None,
+    directory: str | None = None,
 ):
     """
     Open and upload a file on your filesystem to a PLC.
@@ -230,7 +230,9 @@ def upload_filename(
     hostname : str
         The plc hostname to upload to.
     filename : str
-        The name of the file on both your filesystem and on the PLC.
+        The name of the file on your filesystem.
+    dest_filename : str, optional
+        The name of the file on the PLC. If omitted, same as filename.
     directory : str, optional
         The ftp subdirectory to read and write from
         A default directory pmps is used if this argument is omitted.
@@ -254,7 +256,7 @@ def upload_filename(
 def download_file_text(
     hostname: str,
     filename: str,
-    directory: typing.Optional[str] = None,
+    directory: str | None = None,
 ) -> str:
     """
     Download a file from the PLC to use in Python.
@@ -290,108 +292,3 @@ def download_file_text(
     for chunk in byte_chunks:
         contents += chunk.decode('ascii')
     return contents
-
-
-def download_file_json_dict(
-    hostname: str,
-    filename: str,
-    directory: typing.Optional[str] = None,
-) -> dict[str, dict[str, typing.Any]]:
-    """
-    Download a file from the PLC and interpret it as a json dictionary.
-
-    The result is suitable for comparing to json blobs exported from the
-    pmps database.
-
-    Parameters
-    ----------
-    hostname : str
-        The plc hostname to download from.
-    filename : str
-        The name of the file on the PLC.
-    directory : str, optional
-        The ftp subdirectory to read and write from
-        A default directory pmps is used if this argument is omitted.
-
-    Returns
-    -------
-    data : dict
-        The dictionary data from the file stored on the plc.
-    """
-    logger.debug(
-        'download_file_json_dict(%s, %s, %s)',
-        hostname,
-        filename,
-        directory,
-    )
-    return json.loads(
-        download_file_text(
-            hostname=hostname,
-            filename=filename,
-            directory=directory,
-        )
-    )
-
-
-def local_file_json_dict(filename: str) -> dict[str, dict[str, typing.Any]]:
-    """
-    Return the json dict from a local file.
-
-    Suitable for comparisons to files from the database or from the plc.
-
-    Parameters
-    ----------
-    filename : str
-        The name of the file on the local filesystem.
-
-    Returns
-    -------
-    data : dict
-        The dictionary data from the file stored on the local drive.
-    """
-    logger.debug('local_file_json_dict(%s)', filename)
-    with open(filename, 'r') as fd:
-        return json.load(fd)
-
-
-def compare_file(
-    hostname: str,
-    local_filename: str,
-    plc_filename: typing.Optional[str] = None,
-    directory: typing.Optional[str] = None,
-) -> bool:
-    """
-    Compare a file saved locally to one on the PLC.
-
-    Parameters
-    ----------
-    hostname : str
-        The plc hostname to download from.
-    local_filename: str
-        The full path the local file to compare with.
-    plc_filename: str, optional
-        The filename as saved on the PLC. If omitted, the local_filename's
-        basename will be used.
-    directory : str, optional
-        The ftp subdirectory to read and write from
-        A default directory pmps is used if this argument is omitted.
-
-    Returns
-    -------
-    same_file : bool
-        True if the contents of these two files are the same.
-    """
-    logger.debug(
-        'compare_file(%s, %s, %s, %s)',
-        hostname,
-        local_filename,
-        plc_filename,
-        directory,
-    )
-    local_data = local_file_json_dict(filename=local_filename)
-    plc_data = download_file_json_dict(
-        hostname=hostname,
-        filename=plc_filename,
-        directory=directory,
-    )
-    return local_data == plc_data
