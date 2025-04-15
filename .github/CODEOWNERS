@@ -1,0 +1,14 @@
+# default group
+* @pcdshub/pmps-sme
+
+# language-specific group(s)
+## PYTHON files
+*.py @pcdshub/pmps-sme @pcdshub/python-reviewers
+*.pyi @pcdshub/pmps-sme @pcdshub/python-reviewers
+*.pyc @pcdshub/pmps-sme @pcdshub/python-reviewers
+*.pyw @pcdshub/pmps-sme @pcdshub/python-reviewers
+*.pyx @pcdshub/pmps-sme @pcdshub/python-reviewers
+*.pyd @pcdshub/pmps-sme @pcdshub/python-reviewers
+
+# github folder holds administrative files
+.github/** @pcdshub/software-admin
