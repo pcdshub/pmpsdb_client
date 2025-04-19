@@ -75,8 +75,8 @@ table = """
 1	Kicker STBY	0.5	-	0	0	0	0	0	Beam off, Kickers standby
 2	BC1Hz	1	1	350	1	0.35	1.4	1.4	350 pC x 1 Hz
 3	BC10Hz	1	0.1	3500	10	3.5	14	14	350 pC X 10 Hz
-4	Diagnostic	0.5	-	5000	-	10	40	20	50 pC x 200 Hz
-5	BC120Hz	0.2	0.0083	6000	120	30	120	24	250 pC x 120 Hz
+4	BC120Hz	0.2	0.0083	6000	120	30	120	24	250 pC x 120 Hz
+5	Diagnostic	0.5	-	5000	-	10	40	20	50 pC x 200 Hz
 6	Tuning	0.2	-	7000	-	35	140	28	100 pC X 350 Hz
 7	1% MAP	0.01	-	3000	-	300	1200	12	100 pC X 3 kHz
 8	5% MAP	0.003	-	4500	-	1500	6000	18	100 pC x 15 kHz
