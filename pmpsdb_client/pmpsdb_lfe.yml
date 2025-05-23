@@ -1,3 +1,8 @@
 plc-lfe-motion: "PLC:LFE:MOTION"
 plc-lfe-optics: "PLC:LFE:OPTICS"
+plc-lfe-vac: "PLC:LFE:VAC"
+plc-lfe-gatt: "PLC:LFE:GEM"
 plc-xrt-homs: "PLC:XRT:OPTICS"
+plc-txi-hxr-vac: "PLC:TXI:HXR:VAC"
+plc-txi-hxr-motion: "PLC:TXI:HXR:MOT"
+plc-txi-hxr-optics: "PLC:TXI:HXR:OPTICS"
