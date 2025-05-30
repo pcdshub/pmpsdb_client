@@ -100,6 +100,14 @@ def create_parser() -> argparse.ArgumentParser:
             'This is the default if we are on a rix operator console.'
         ),
     )
+    gui.add_argument(
+        '--txi',
+        action='store_true',
+        help=(
+            'Load the included lfe and txi PLCs configuration files.'
+            'This is the default if we are on a txi operator console.'
+        ),
+    )
 
     list_files = subparsers.add_parser(
         'list-files',
