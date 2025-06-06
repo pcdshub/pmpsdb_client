@@ -19,14 +19,18 @@ def run_gui(args: argparse.Namespace) -> int:
     configs = args.config or []
     if args.tst:
         configs.append(get_included_config('tst'))
-    if any((args.lfe, args.lfe_all, args.all_prod)):
+    if any((args.lfe, args.txi, args.txi_hard, args.lfe_all, args.all_prod)):
         configs.append(get_included_config('lfe'))
-    if any((args.kfe, args.tmo, args.rix, args.kfe_all, args.all_prod)):
+    if any((args.kfe, args.tmo, args.rix, args.txi, args.txi_soft, args.kfe_all, args.all_prod)):
         configs.append(get_included_config('kfe'))
     if any((args.tmo, args.kfe_all, args.all_prod)):
         configs.append(get_included_config('tmo'))
     if any((args.rix, args.kfe_all, args.all_prod)):
         configs.append(get_included_config('rix'))
+    if any((args.txi, args.txi_hard, args.lfe_all, args.all_prod)):
+        configs.append(get_included_config('txi_hard'))
+    if any((args.txi, args.txi_soft, args.kfe_all, args.all_prod)):
+        configs.append(get_included_config('txi_soft'))
     app = QApplication([])
     gui = PMPSManagerGui(configs=configs)
     gui.show()
