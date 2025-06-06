@@ -1,0 +1,3 @@
+plc-txi-sxr-motion: "PLC:TXI:SXR:MOTION"
+plc-txi-optics: "PLC:TXI:KFE:OPTICS"
+plc-txi-sxr-vac: "PLC:TXI:VAC"

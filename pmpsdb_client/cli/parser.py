@@ -101,11 +101,25 @@ def create_parser() -> argparse.ArgumentParser:
         ),
     )
     gui.add_argument(
-        '--txi',
+        '--txi', '--txi-all',
         action='store_true',
         help=(
-            'Load the included lfe and txi PLCs configuration files.'
+            'Load the included kfe, lfe, and txi PLCs configuration files.'
             'This is the default if we are on a txi operator console.'
+        ),
+    )
+    gui.add_argument(
+        '--txi-soft',
+        action='store_true',
+        help=(
+            'Load the included kfe and soft txi PLCs configuration files.'
+        ),
+    )
+    gui.add_argument(
+        '--txi-hard',
+        action='store_true',
+        help=(
+            'Load the included lfe and hard txi PLCs configuration files.'
         ),
     )
 

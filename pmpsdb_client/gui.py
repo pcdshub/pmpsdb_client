@@ -344,7 +344,7 @@ def select_default_config() -> list[str]:
     elif 'mec' in hostname:
         configs = ['lfe']
     elif 'txi' in hostname:
-        configs = ['lfe', 'txi_hard']
+        configs = ['kfe', 'txi_soft', 'lfe', 'txi_hard']
     else:
         configs = ['tst']
     return [str(Path(__file__).parent / f'pmpsdb_{cfg}.yml') for cfg in configs]
