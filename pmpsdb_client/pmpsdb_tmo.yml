@@ -1,2 +1,3 @@
 plc-tmo-motion: "PLC:TMO:MOTION"
 plc-tmo-optics: "PLC:TMO:OPTICS"
+plc-dream-motion: "PLC:lcls_dream_motion"
